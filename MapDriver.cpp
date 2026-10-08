@@ -2,7 +2,15 @@
 #include <iostream>
 
 int main() {
-    Territory t("test");
-    std::cout << "territory created successfully.\n";
+    // --- Territory test ---
+    Territory a("A"), b("B");
+    a.setAdjacent(&b);
+    b.setAdjacent(&a);
+
+    Territory c(a);   // copy constructor
+
+    std::cout << a << "\n";
+    std::cout << c << "\n";
+
     return 0;
 }

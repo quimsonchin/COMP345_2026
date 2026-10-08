@@ -1,40 +1,37 @@
-//only includes this header file once in a single compilation
 #pragma once
 #include <string>
 #include <vector>
 #include <iostream>
 
-class Player; //defined in Player.h
-class Territory; //defined within this file
+class Player;     // defined in Player.h by teammate C
+class Continent;  // full class comes later in this file
 
+/** A node in the map graph. Owned by Map, not by its neighbors. */
 class Territory {
 public:
-    Territory(); //defaut constructor
-    Territory(const std::string&name); //passes text without copying it, will not be modified, and will not be deleted
-    Territory(const Territory&other); //copy constructor
-    Territory&operator=(const Territory&other); //builds a new object by copying the values of an existing object
-    ~Territory(); //destructor
+    Territory();
+    Territory(const std::string& name);
+    Territory(const Territory& other);
+    Territory& operator=(const Territory& other);
+    ~Territory();
 
-    //getters
     std::string getName() const;
-    Player*getOwner() const;
+    Player* getOwner() const;
     int getArmies() const;
-    Continent*getContinent() const;
-    const std::vector<Territory*>&getAdjacentTerritories() const;
+    Continent* getContinent() const;
+    const std::vector<Territory*>& getAdjacent() const;
 
-    //setters
-    void setOwner(Player*player);
-    void setArmies(int num);
-    void setContinent(Continent*continent);
-    void setAdjacent(Territory&other);
+    void setOwner(Player* owner);
+    void setArmies(int armies);
+    void setContinent(Continent* continent);
+    void setAdjacent(Territory* other);  // adds one neighbor to the list
 
-    friend std::ostream&operator<<(std::ostream&out, const Territory&t);
-    
+    friend std::ostream& operator<<(std::ostream& out, const Territory& t);
+
 private:
     std::string name;
-    Player* owner;
+    Player* owner;                    // not owned
     int armies;
-    Continent* continent;
-    std::vector<Territory*> adjacent;
+    Continent* continent;             // not owned
+    std::vector<Territory*> adjacent; // not owned
 };
-    
