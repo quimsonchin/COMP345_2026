@@ -12,7 +12,6 @@ Deadline: October 25, 2026.
 | Teammate B | Part 3: Orders list, Part 4: Cards |
 | Teammate C | Part 2: Player, Part 5: Game Engine |
 
-(Replace the teammate names above with the real ones.)
 
 ## Project structure
 
