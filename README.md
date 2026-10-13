@@ -57,11 +57,4 @@ g++ -std=c++17 -Wall GameEngineDriver.cpp GameEngine.cpp -o GameEngineDriver.exe
 
 Note: the exact list of `.cpp` files for each driver depends on how the parts depend on each other. If a build fails with "undefined reference" errors, add the missing part's `.cpp` file to the command.
 
-## Code rules (from the assignment)
-
-- Data members of user-defined class type are pointers.
-- Each part lives in its own `.h`/`.cpp` pair; no inline functions.
-- Every class has a copy constructor, assignment operator, stream insertion operator and destructor.
-- No memory leaks.
-- Every class, method, free function and operator is commented; no commented-out code.
 
