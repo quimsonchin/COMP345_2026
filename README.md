@@ -4,14 +4,20 @@ C++ implementation of the building blocks of a simplified Warzone/Risk game.
 Course: COMP 345, Advanced Program Design with C++, Concordia University.
 Deadline: October 25, 2026.
 
-## Team
+## Team and work division
 
-| Member | Parts |
-|---|---|
-| Kaila | Part 1: Map |
-| Teammate B | Part 3: Orders list, Part 4: Cards |
-| Teammate C | Part 2: Player, Part 5: Game Engine |
+| # | Member | Responsibility | Files |
+|---|---|---|---|
+| 1 | Kaila | Map graph implementation | `Map.h`, `Map.cpp` |
+| 2 | Member 2 | MapLoader and MapDriver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
+| 3 | Member 3 | Orders system | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
+| 4 | Member 4 | Player class | `Player.h`, `Player.cpp`, `PlayerDriver.cpp` |
+| 5 | Member 5 | Cards, deck and hand | `Cards.h`, `Cards.cpp`, `CardsDriver.cpp` |
+| 6 | Member 6 | Game engine | `GameEngine.h`, `GameEngine.cpp`, `GameEngineDriver.cpp` |
 
+(Replace the member names above with the real ones.)
+
+Members 1 and 2 both work in `Map.h` and `Map.cpp` (the assignment requires the whole Map part in one file pair). Member 1 owns `Territory`, `Continent`, `Map` and `validate()`. Member 2 owns `MapLoader` and the driver. Pull before every edit and commit small changes often to avoid merge conflicts in these two files.
 
 ## Project structure
 
@@ -56,5 +62,3 @@ g++ -std=c++17 -Wall GameEngineDriver.cpp GameEngine.cpp -o GameEngineDriver.exe
 ```
 
 Note: the exact list of `.cpp` files for each driver depends on how the parts depend on each other. If a build fails with "undefined reference" errors, add the missing part's `.cpp` file to the command.
-
-
