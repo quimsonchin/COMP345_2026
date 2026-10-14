@@ -42,13 +42,11 @@ g++ -std=c++17 -Wall MapDriver.cpp Map.cpp -o MapDriver.exe
 ```
 
 ```
-g++ -std=c++17 -Wall OrdersDriver.cpp Orders.cpp -o OrdersDriver.exe
-.\OrdersDriver.exe
+g++ -std=c++17 -Wall OrdersDriver.cpp Orders.cpp Map.cpp -o OrdersDriver.exe
 ```
 
 ```
-g++ -std=c++17 -Wall CardsDriver.cpp Cards.cpp Orders.cpp -o CardsDriver.exe
-.\CardsDriver.exe
+g++ -std=c++17 -Wall CardsDriver.cpp Cards.cpp Orders.cpp Map.cpp -o CardsDriver.exe
 ```
 
 ```
