@@ -10,7 +10,7 @@ Deadline: October 25, 2026.
 |---|---|---|---|
 | 1 | Kaila | Map graph implementation | `Map.h`, `Map.cpp` |
 | 2 | Member 2 | MapLoader and MapDriver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
-| 3 | Member 3 | Orders system | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
+| 3 | Mengqi | Orders system | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
 | 4 | Member 4 | Player class | `Player.h`, `Player.cpp`, `PlayerDriver.cpp` |
 | 5 | Member 5 | Cards, deck and hand | `Cards.h`, `Cards.cpp`, `CardsDriver.cpp` |
 | 6 | Member 6 | Game engine | `GameEngine.h`, `GameEngine.cpp`, `GameEngineDriver.cpp` |
