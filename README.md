@@ -12,7 +12,7 @@ Deadline: October 25, 2026.
 | 2 | Rifat | MapLoader and MapDriver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
 | 3 | Mengqi | Orders system | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
 | 4 | Phuc | Player class | `Player.h`, `Player.cpp`, `PlayerDriver.cpp` |
-| 5 | Member 5 | Cards, deck and hand | `Cards.h`, `Cards.cpp`, `CardsDriver.cpp` |
+| 5 | Alexandre | Cards, deck and hand | `Cards.h`, `Cards.cpp`, `CardsDriver.cpp` |
 | 6 | Member 6 | Game engine | `GameEngine.h`, `GameEngine.cpp`, `GameEngineDriver.cpp` |
 
 (Replace the member names above with the real ones.)
