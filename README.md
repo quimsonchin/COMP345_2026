@@ -9,7 +9,7 @@ Deadline: October 25, 2026.
 | # | Member | Responsibility | Files |
 |---|---|---|---|
 | 1 | Kaila | Map graph implementation | `Map.h`, `Map.cpp` |
-| 2 | Rifat | MapLoader and MapDriver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
+| 2 | Rafit | MapLoader and MapDriver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
 | 3 | Mengqi | Orders system | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
 | 4 | Phuc | Player class | `Player.h`, `Player.cpp`, `PlayerDriver.cpp` |
 | 5 | Alexandre | Cards, deck and hand | `Cards.h`, `Cards.cpp`, `CardsDriver.cpp` |
@@ -42,13 +42,11 @@ g++ -std=c++17 -Wall MapDriver.cpp Map.cpp -o MapDriver.exe
 ```
 
 ```
-g++ -std=c++17 -Wall OrdersDriver.cpp Orders.cpp -o OrdersDriver.exe
-.\OrdersDriver.exe
+g++ -std=c++17 -Wall OrdersDriver.cpp Orders.cpp Map.cpp -o OrdersDriver.exe
 ```
 
 ```
-g++ -std=c++17 -Wall CardsDriver.cpp Cards.cpp Orders.cpp -o CardsDriver.exe
-.\CardsDriver.exe
+g++ -std=c++17 -Wall CardsDriver.cpp Cards.cpp Orders.cpp Map.cpp -o CardsDriver.exe
 ```
 
 ```
