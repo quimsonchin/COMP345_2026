@@ -4,7 +4,7 @@
 #include <string>
 
 // TEST-ONLY player identity. Remove this when real Player.h becomes available.
-// This defines no teammate API; Orders.cpp never dereferences Player*.
+
 class Player {};
 
 namespace {
@@ -25,20 +25,44 @@ void testOrder(Order& order, bool expected, const std::string& name) {
 int main() {
     Player p1, p2;
     int reinforcements = 12;
-    Territory canada("Canada"), usa("USA"), mexico("Mexico"), japan("Japan"), unowned("Unowned");
-    canada.setOwner(&p1); canada.setArmies(15);
-    usa.setOwner(&p2); usa.setArmies(8);
-    mexico.setOwner(&p2); mexico.setArmies(5);
-    japan.setOwner(&p1); japan.setArmies(3);
-    canada.setAdjacent(&usa); usa.setAdjacent(&canada);
-    usa.setAdjacent(&mexico); mexico.setAdjacent(&usa);
+    // Build the SAME connected Westeros/Essos graph with teammate's Map API.
+    Map gameMap;
+    Continent* westeros = gameMap.addContinent("Westeros", 5);
+    Continent* essos = gameMap.addContinent("Essos", 3);
+    Territory* winterfell = gameMap.addTerritory("Winterfell");
+    Territory* kingsLanding = gameMap.addTerritory("King's Landing");
+    Territory* dorne = gameMap.addTerritory("Dorne");
+    Territory* pentos = gameMap.addTerritory("Pentos");
+    Territory* braavos = gameMap.addTerritory("Braavos");
+    Territory* meereen = gameMap.addTerritory("Meereen");
+    Territory* qarth = gameMap.addTerritory("Qarth");
+    for (Territory* t : {winterfell, kingsLanding, dorne})
+        gameMap.assignToContinent(t, westeros);
+    for (Territory* t : {pentos, braavos, meereen, qarth})
+        gameMap.assignToContinent(t, essos);
+    gameMap.addEdge(winterfell, kingsLanding);
+    gameMap.addEdge(kingsLanding, dorne);
+    gameMap.addEdge(kingsLanding, pentos);
+    gameMap.addEdge(pentos, braavos);
+    gameMap.addEdge(pentos, meereen);
+    gameMap.addEdge(meereen, qarth);
+    check(gameMap.validate(), "Teammate's Map validates with Westeros/Essos");
+    winterfell->setOwner(&p1); winterfell->setArmies(15);
+    kingsLanding->setOwner(&p2); kingsLanding->setArmies(8);
+    dorne->setOwner(&p2); dorne->setArmies(5);
+    pentos->setOwner(&p2); pentos->setArmies(7);
+    braavos->setOwner(&p2); braavos->setArmies(4);
+    meereen->setOwner(&p2); meereen->setArmies(6);
+    qarth->setOwner(&p1); qarth->setArmies(3);
+    // Neutral territory outside the validated game map for invalid Bomb test.
+    Territory theWall("The Wall");
 
     std::cout << "=== Six order types: valid and invalid tests ===\n";
-    Deploy deploy(&p1, &canada, 5, &reinforcements);
-    Advance advance(&p1, &canada, &usa, 3);
-    Bomb bomb(&p1, &usa, &canada);
-    Blockade blockade(&p1, &japan);
-    Airlift airlift(&p1, &canada, &japan, 2); // not adjacent
+    Deploy deploy(&p1, winterfell, 5, &reinforcements);
+    Advance advance(&p1, winterfell, kingsLanding, 3);
+    Bomb bomb(&p1, kingsLanding, winterfell);
+    Blockade blockade(&p1, qarth);
+    Airlift airlift(&p1, winterfell, qarth, 2); // not adjacent
     Negotiate negotiate(&p1, &p2);
     testOrder(deploy, true, "Deploy valid");
     testOrder(advance, true, "Advance valid");
@@ -47,14 +71,14 @@ int main() {
     testOrder(airlift, true, "Airlift valid (nonadjacent)");
     testOrder(negotiate, true, "Negotiate valid");
 
-    Deploy invalidDeploy(&p1, &usa, 5, &reinforcements);
-    Deploy overBudget(&p1, &canada, 50, &reinforcements);
-    Advance invalidAdvance(&p1, &canada, &usa, 100);
-    Advance notAdjacent(&p1, &canada, &japan, 2);
-    Bomb invalidBomb(&p1, &mexico, &canada);
-    Bomb neutralBomb(&p1, &unowned, &canada);
-    Blockade invalidBlockade(&p1, &usa);
-    Airlift invalidAirlift(&p1, &usa, &japan, 2);
+    Deploy invalidDeploy(&p1, kingsLanding, 5, &reinforcements);
+    Deploy overBudget(&p1, winterfell, 50, &reinforcements);
+    Advance invalidAdvance(&p1, winterfell, kingsLanding, 100);
+    Advance notAdjacent(&p1, winterfell, qarth, 2);
+    Bomb invalidBomb(&p1, dorne, winterfell);
+    Bomb neutralBomb(&p1, &theWall, winterfell);
+    Blockade invalidBlockade(&p1, kingsLanding);
+    Airlift invalidAirlift(&p1, kingsLanding, qarth, 2);
     Negotiate invalidNegotiate(&p1, &p1);
     testOrder(invalidDeploy, false, "Deploy enemy territory");
     testOrder(overBudget, false, "Deploy exceeds pool");
@@ -68,11 +92,11 @@ int main() {
 
     std::cout << "\n=== OrdersList: add, move, remove, copy ===\n";
     OrdersList list;
-    list.addOrder(new Deploy(&p1, &canada, 4, &reinforcements));
-    list.addOrder(new Advance(&p1, &canada, &usa, 2));
-    list.addOrder(new Bomb(&p1, &usa, &canada));
-    list.addOrder(new Blockade(&p1, &japan));
-    list.addOrder(new Airlift(&p1, &canada, &japan, 2));
+    list.addOrder(new Deploy(&p1, winterfell, 4, &reinforcements));
+    list.addOrder(new Advance(&p1, winterfell, kingsLanding, 2));
+    list.addOrder(new Bomb(&p1, kingsLanding, winterfell));
+    list.addOrder(new Blockade(&p1, qarth));
+    list.addOrder(new Airlift(&p1, winterfell, qarth, 2));
     list.addOrder(new Negotiate(&p1, &p2));
     check(list.size() == 6, "Six orders added sequentially");
     check(list.getOrder(-1) == nullptr && list.getOrder(99) == nullptr, "getOrder invalid indices");
@@ -104,3 +128,4 @@ int main() {
     std::cout << "\nResult: " << passed << " passed, " << failed << " failed.\n";
     return failed == 0 ? 0 : 1;
 }
+
