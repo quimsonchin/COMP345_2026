@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build cards",
+            "type": "process",
+            "command": "/usr/bin/clang++",
+            "args": [
+                "-std=c++17",
+                "-g",
+                "-O0",
+                "-isysroot",
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk",
+                "CardsDriver.cpp",
+                "Cards.cpp",
+                "Orders.cpp",
+                "Map.cpp",
+                "-o",
+                "cards_demo"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}
