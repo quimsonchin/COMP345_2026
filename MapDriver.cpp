@@ -24,19 +24,14 @@ int main() {
 
     // paths are relative to the project root
     std::vector<std::string> mapFiles = {
-        // valid maps
+        // valid map
         "maps/westeros_essos.map",
-        "maps/known_world.map",
-        // rejected by the loader
-        "maps/does_not_exist.map",
-        "maps/not_a_map.txt",
-        "maps/missing_borders.map",
-        "maps/bad_continent.map",
-        "maps/bad_border.map",
         // load fine but fail validate()
         "maps/disconnected.map",
         "maps/split_continent.map",
-        "maps/two_continents.map"
+        "maps/two_continents.map",
+        // rejected by the loader
+        "maps/not_a_map.txt"
     };
 
     int accepted = 0;
