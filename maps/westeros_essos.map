@@ -1,0 +1,27 @@
+; Westeros and Essos, linked through Kings-Landing - Pentos
+
+[files]
+pic westeros_essos_pic.jpg
+map westeros_essos_map.gif
+
+[continents]
+Westeros 5 red
+Essos 3 yellow
+
+[countries]
+1 Winterfell 1 120 40
+2 Kings-Landing 1 140 160
+3 Dorne 1 150 260
+4 Pentos 2 320 150
+5 Braavos 2 330 60
+6 Meereen 2 470 220
+7 Qarth 2 560 250
+
+[borders]
+1 2
+2 1 3 4
+3 2
+4 2 5 6
+5 4
+6 4 7
+7 6
