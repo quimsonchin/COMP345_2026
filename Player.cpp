@@ -2,7 +2,7 @@
 #include <algorithm> // For std::find
 
 /* Default constructor:
-   Every pointer gets initialized, so non is every a dangling pointer or garbage. */
+   Every pointer gets initialized, so none is a dangling pointer or garbage. */
 Player::Player()
 {
     territories = new std::vector<Territory *>();
@@ -12,7 +12,7 @@ Player::Player()
 }
 
 /* Parameterized constructor:
-   Player makes its own copies of the arguements, so the caller keeps ownership of whatever is passed in.
+   Player makes its own copies of the arguments, so the caller keeps ownership of whatever is passed in.
    This avoids a double delete when both caller and player try to free the same memory. */
 Player::Player(std::vector<Territory *> *territories, Hand *hand, OrdersList *orders)
 {
@@ -28,7 +28,7 @@ Player::Player(std::vector<Territory *> *territories, Hand *hand, OrdersList *or
    This avoids a double delete when both caller and player try to free the same memory.     */
 Player::Player(const Player &other)
 {
-    // Shallow copy of Territory* values, but is's okay because Map owns the Territory objects.
+    // Shallow copy of Territory* values, but it's okay because Map owns the Territory objects.
     territories = new std::vector<Territory *>(*other.territories);
     // The others are deep copies, so Player owns them and is responsible for freeing them in the destructor.
     hand = new Hand(*other.hand);
@@ -41,7 +41,7 @@ Player::~Player()
 {
     delete territories; // Delete the vector, NOT the Territory objects
     delete hand;
-    delete orders; // OdersList's destructor deletes each Order
+    delete orders; // OrdersList's destructor deletes each Order
     delete reinforcementsPool;
 }
 
@@ -101,14 +101,13 @@ std::vector<Territory *> *Player::toAttack()
 
 void Player::issueOrder(const std::string &type)
 {
-// Get the territories to defend and attack. The caller owns these vectors and is responsible for deleting them.
-std:
-    vector<Territory *> *mine = toDefend();
+    // Get the territories to defend and attack. The caller owns these vectors and is responsible for deleting them.
+    std::vector<Territory *> *mine = toDefend();
     std::vector<Territory *> *enemy = toAttack();
 
     if (mine->empty())
     {
-        std::cout << "Cannot issue order: player own no territories." << std::endl;
+        std::cout << "Cannot issue order: player owns no territories." << std::endl;
     }
     else if (type == "deploy")
     {

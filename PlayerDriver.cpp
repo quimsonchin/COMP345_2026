@@ -27,7 +27,7 @@ int main()
     *p1->getReinforcementsPool() = 10; // Give p1 some reinforcements
 
     // Demo 1: print the player
-    std::cout << "=== Player 1 ===\n"
+    std::cout << "\n=== Player 1 ===\n"
               << *p1 << std::endl;
 
     // Demo 2: toDefend and toAttack
@@ -63,7 +63,7 @@ int main()
     p1->issueOrder("invalid"); // Invalid order type: should print an error message
     Player *p3 = new Player(); // Player with no territories
     p3->issueOrder("deploy");  // Player with no territories: should print an error message
-    std::cout << "=== Player 1 Orders List ===\n"
+    std::cout << "\n=== Player 1 Orders List ===\n"
               << *p1->getOrdersList() << std::endl; // Print the orders list for p1
 
     // Demo 4: copy constructor and assignment operator
@@ -77,8 +77,15 @@ int main()
     Player *assignedPlayer = new Player(); // Assignment operator
     *assignedPlayer = *p1;                 // Assign p1 to assignedPlayer
     *assignedPlayer = *assignedPlayer;     // Self-assignment test
-    std::cout << "=== Assigned Player ===\n"
+    std::cout << "\n=== Assigned Player ===\n"
               << *assignedPlayer << std::endl; // Print the assigned player
+
+    // Demo 5: Show hand
+    Deck *deck = new Deck();
+    deck->draw(*p1->getHand());
+    deck->draw(*p1->getHand());
+    std::cout << "\n=== Player 1 hand ===\n"
+              << *p1->getHand() << std::endl;
 
     // Clean up
     delete p1;
@@ -86,6 +93,7 @@ int main()
     delete p3;
     delete assignedPlayer;
     delete copyPlayer;
+    delete deck;
     delete gameMap; // Map destructor deletes all territories
 
     return 0;
