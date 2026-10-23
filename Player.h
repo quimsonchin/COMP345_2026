@@ -1,21 +1,23 @@
-#pragma once;
-#include <vector>;
-#include <iostream>;
+#pragma once
+#include <vector>
+#include <iostream>
+#include <string>
 #include "Map.h"    // For Territory
 #include "Cards.h"  // For Hand
-#include "Orders.h" // For OrderList
+#include "Orders.h" // For OrdersList
 
 class Player
 {
 private:
     std::vector<Territory *> *territories; // Pointer to a collection of Territory pointers
     Hand *hand;                            // Pointer to the player's hand of cards
-    OrderList *orders;                     // Pointer to the player's list of OrdersList
+    OrdersList *orders;                    // Pointer to the player's list of orders
+    int *reinforcementsPool;               // Pointer to the player's reinforcements pool
 
 public:
     // Constructor and Destructor
     Player();
-    Player(std::vector<Territory *> territories, Hand *hand, OrderList *orders);
+    Player(std::vector<Territory *> *territories, Hand *hand, OrdersList *orders);
     Player(const Player &other); // Copy constructor
     ~Player();                   // Destructor
 
@@ -28,10 +30,14 @@ public:
     // Required methods
     std::vector<Territory *> *toDefend();
     std::vector<Territory *> *toAttack();
-    void issueOrder();
+    void issueOrder(const std::string &type);
 
     // Getters
     std::vector<Territory *> *getTerritories() const;
     Hand *getHand() const;
-    OrderList *getOrdersList() const;
-}
+    OrdersList *getOrdersList() const;
+    int *getReinforcementsPool() const;
+
+    // Other methods
+    void addTerritory(Territory *territory);
+};
