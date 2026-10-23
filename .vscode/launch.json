@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug cards",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cards_demo",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "lldb",
+            "preLaunchTask": "Build cards",
+            "externalConsole": false
+        }
+    ]
+}
