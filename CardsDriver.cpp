@@ -2,7 +2,6 @@
 #include "Orders.h"
 #include <iostream>
 
-// Demonstrate all five cards using the real OrdersList, without Player objects.
 int main() {
     Deck deck;
     Hand hand;
@@ -10,7 +9,6 @@ int main() {
 
     std::cout << "Before drawing:\n" << deck << '\n' << hand << "\n\n";
 
-    // The default deck has one of every card type. Draw all five.
     while (deck.draw(hand)) {
         std::cout << "Drew a card.\n";
     }
@@ -20,7 +18,6 @@ int main() {
         return 1;
     }
 
-    // Playing removes the first card, so the next card moves into slot zero.
     while (hand.size() > 0) {
         Card* card = hand.getCard(0);
         std::cout << "Playing " << *card << '\n';
@@ -36,7 +33,6 @@ int main() {
         return 1;
     }
 
-    // These are real orders with missing game inputs, so validation rejects them.
     std::cout << "\nOrders have no player/territory inputs in this standalone demo.\n";
     for (int i = 0; i < orders.size(); i++) {
         Order* order = orders.getOrder(i);

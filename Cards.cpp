@@ -181,7 +181,7 @@ std::ostream& operator<<(std::ostream& out, const Hand& object) {
 
 // Choose a random occupied slot and move that card to the hand.
 bool Deck::draw(Hand& hand) {
-    if (count == 0 || hand.count == 5) {
+    if (count == 0 || hand.count == 5) { //count is from the Deck variable
         return false;
     }
     static std::mt19937 generator(std::random_device{}());
