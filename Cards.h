@@ -47,7 +47,7 @@ public:
     ~Hand();
     int size() const;
     Card* getCard(int index) const;
-    friend class Deck; //Gives the permission to access members of the class Hand to the class Deck
+    friend class Deck; 
     friend class Card;
     friend std::ostream& operator<<(std::ostream& out, const Hand& hand);
 };

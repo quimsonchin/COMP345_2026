@@ -2,17 +2,14 @@
 #include "Orders.h"
 #include <random>
 
-// Construct, copy, or assign the type of a card.
 Card::Card(CardType type) { this->type = type; }
 Card::Card(const Card& other) { type = other.type; }
 Card& Card::operator=(const Card& other) {
     type = other.type;
     return *this;
 }
-// A card itself owns no dynamically allocated objects.
 Card::~Card() {}
 
-// Print the card's name.
 std::ostream& operator<<(std::ostream& out, const Card& card) {
     switch (card.type) {
         case CardType::Bomb: out << "bomb"; break;
@@ -24,7 +21,6 @@ std::ostream& operator<<(std::ostream& out, const Card& card) {
     return out;
 }
 
-// Check membership, create an order, and transfer this card back to the deck.
 bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
     int position = -1;
     for (int i = 0; i < hand.count; i++) {
@@ -37,8 +33,6 @@ bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
         return false;
     }
 
-    // A1 standalone demonstration: missing game objects make these orders invalid.
-    // The real Orders.cpp safely constructs, prints, and rejects these orders.
     Order* order = nullptr;
     switch (type) {
         case CardType::Bomb: order = new Bomb(nullptr, nullptr, nullptr); break;
@@ -54,7 +48,7 @@ bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
     try {
         orders.addOrder(order); // The list now owns the order.
     } catch (...) {
-        delete order; // If addition fails, the list has not taken ownership.
+        delete order; 
         throw;
     }
 
@@ -70,7 +64,6 @@ bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
     return true;
 }
 
-// Create one card of every type. Unused slots begin as nullptr.
 Deck::Deck() : cards{}, count(0) {
     try {
         cards[count++] = new Card(CardType::Bomb);
@@ -84,7 +77,6 @@ Deck::Deck() : cards{}, count(0) {
     }
 }
 
-// Deep copy: create separate cards instead of sharing owned pointers.
 Deck::Deck(const Deck& other) : cards{}, count(0) {
     try {
         for (int i = 0; i < other.count; i++) {
@@ -97,7 +89,6 @@ Deck::Deck(const Deck& other) : cards{}, count(0) {
     }
 }
 
-// Copy first, then exchange ownership with the temporary copy.
 Deck& Deck::operator=(const Deck& other) {
     if (this != &other) {
         Deck copy(other);
@@ -113,15 +104,12 @@ Deck& Deck::operator=(const Deck& other) {
     return *this;
 }
 
-// Delete only the cards still owned by this object.
 Deck::~Deck() {
     for (int i = 0; i < count; i++) { delete cards[i]; }
 }
 
-// Report the number of cards currently stored.
 int Deck::size() const { return count; }
 
-// Print the collection without changing it.
 std::ostream& operator<<(std::ostream& out, const Deck& object) {
     out << "Deck (" << object.count << "): ";
     for (int i = 0; i < object.count; i++) {
@@ -130,10 +118,8 @@ std::ostream& operator<<(std::ostream& out, const Deck& object) {
     return out;
 }
 
-// A new hand has five empty slots and zero cards.
 Hand::Hand() : cards{}, count(0) {}
 
-// Deep copy: create separate cards instead of sharing owned pointers.
 Hand::Hand(const Hand& other) : cards{}, count(0) {
     try {
         for (int i = 0; i < other.count; i++) {
@@ -146,7 +132,6 @@ Hand::Hand(const Hand& other) : cards{}, count(0) {
     }
 }
 
-// Copy first, then exchange ownership with the temporary copy.
 Hand& Hand::operator=(const Hand& other) {
     if (this != &other) {
         Hand copy(other);
@@ -162,15 +147,12 @@ Hand& Hand::operator=(const Hand& other) {
     return *this;
 }
 
-// Delete only the cards still owned by this object.
 Hand::~Hand() {
     for (int i = 0; i < count; i++) { delete cards[i]; }
 }
 
-// Report the number of cards currently stored.
 int Hand::size() const { return count; }
 
-// Print the collection without changing it.
 std::ostream& operator<<(std::ostream& out, const Hand& object) {
     out << "Hand (" << object.count << "): ";
     for (int i = 0; i < object.count; i++) {
@@ -179,7 +161,6 @@ std::ostream& operator<<(std::ostream& out, const Hand& object) {
     return out;
 }
 
-// Choose a random occupied slot and move that card to the hand.
 bool Deck::draw(Hand& hand) {
     if (count == 0 || hand.count == 5) { //count is from the Deck variable
         return false;
@@ -191,14 +172,12 @@ bool Deck::draw(Hand& hand) {
     hand.cards[hand.count] = cards[index];
     hand.count++;
 
-    // Fill the vacated slot with the deck's last card.
     cards[index] = cards[count - 1];
     count--;
     cards[count] = nullptr;
     return true;
 }
 
-// Borrow a card without giving away ownership.
 Card* Hand::getCard(int index) const {
     if (index < 0 || index >= count) {
         return nullptr;
