@@ -1,3 +1,11 @@
    *.exe
    *.o
    .vscode/
+
+   # Compiled executables
+/game_engine_demo
+/map_demo
+/orders_demo
+
+# macOS debugging files
+*.dSYM/
