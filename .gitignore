@@ -1,11 +1,32 @@
-   *.exe
-   *.o
    .vscode/
 
-   # Compiled executables
+# Compiled executables
 /game_engine_demo
 /map_demo
 /orders_demo
 
 # macOS debugging files
 *.dSYM/
+
+# Compiled executables (Windows)
+*.exe
+
+# Compiled executables (macOS / Linux)
+*_demo
+/PlayerDriver
+/MapDriver
+/OrdersDriver
+/CardsDriver
+/GameEngineDriver
+
+# Build artifacts
+*.o
+*.out
+*.dSYM/
+build/
+
+# macOS system files
+.DS_Store
+
+# Local compilation output
+build/
