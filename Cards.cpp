@@ -2,14 +2,19 @@
 #include "Orders.h"
 #include <random>
 
+// Set the card type.
 Card::Card(CardType type) { this->type = type; }
+// Copy another card.
 Card::Card(const Card& other) { type = other.type; }
+// Assign another card.
 Card& Card::operator=(const Card& other) {
     type = other.type;
     return *this;
 }
+// Destroy the card.
 Card::~Card() {}
 
+// Print the card type.
 std::ostream& operator<<(std::ostream& out, const Card& card) {
     switch (card.type) {
         case CardType::Bomb: out << "bomb"; break;
@@ -21,6 +26,7 @@ std::ostream& operator<<(std::ostream& out, const Card& card) {
     return out;
 }
 
+// Play the card and return it to the deck.
 bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
     int position = -1;
     for (int i = 0; i < hand.count; i++) {
@@ -64,6 +70,7 @@ bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
     return true;
 }
 
+// Create a deck with one card of each type.
 Deck::Deck() : cards{}, count(0) {
     try {
         cards[count++] = new Card(CardType::Bomb);
@@ -77,6 +84,7 @@ Deck::Deck() : cards{}, count(0) {
     }
 }
 
+// Copy another deck.
 Deck::Deck(const Deck& other) : cards{}, count(0) {
     try {
         for (int i = 0; i < other.count; i++) {
@@ -89,6 +97,7 @@ Deck::Deck(const Deck& other) : cards{}, count(0) {
     }
 }
 
+// Assign another deck.
 Deck& Deck::operator=(const Deck& other) {
     if (this != &other) {
         Deck copy(other);
@@ -104,12 +113,15 @@ Deck& Deck::operator=(const Deck& other) {
     return *this;
 }
 
+// Delete the cards in the deck.
 Deck::~Deck() {
     for (int i = 0; i < count; i++) { delete cards[i]; }
 }
 
+// Return the number of cards in the deck.
 int Deck::size() const { return count; }
 
+// Print the cards in the deck.
 std::ostream& operator<<(std::ostream& out, const Deck& object) {
     out << "Deck (" << object.count << "): ";
     for (int i = 0; i < object.count; i++) {
@@ -118,8 +130,10 @@ std::ostream& operator<<(std::ostream& out, const Deck& object) {
     return out;
 }
 
+// Create an empty hand.
 Hand::Hand() : cards{}, count(0) {}
 
+// Copy another hand.
 Hand::Hand(const Hand& other) : cards{}, count(0) {
     try {
         for (int i = 0; i < other.count; i++) {
@@ -132,6 +146,7 @@ Hand::Hand(const Hand& other) : cards{}, count(0) {
     }
 }
 
+// Assign another hand.
 Hand& Hand::operator=(const Hand& other) {
     if (this != &other) {
         Hand copy(other);
@@ -147,12 +162,15 @@ Hand& Hand::operator=(const Hand& other) {
     return *this;
 }
 
+// Delete the cards in the hand.
 Hand::~Hand() {
     for (int i = 0; i < count; i++) { delete cards[i]; }
 }
 
+// Return the number of cards in the hand.
 int Hand::size() const { return count; }
 
+// Print the cards in the hand.
 std::ostream& operator<<(std::ostream& out, const Hand& object) {
     out << "Hand (" << object.count << "): ";
     for (int i = 0; i < object.count; i++) {
@@ -161,6 +179,7 @@ std::ostream& operator<<(std::ostream& out, const Hand& object) {
     return out;
 }
 
+// Move a random card from the deck to the hand.
 bool Deck::draw(Hand& hand) {
     if (count == 0 || hand.count == 5) { //count is from the Deck variable
         return false;
@@ -178,6 +197,7 @@ bool Deck::draw(Hand& hand) {
     return true;
 }
 
+// Return the card at the given index.
 Card* Hand::getCard(int index) const {
     if (index < 0 || index >= count) {
         return nullptr;
