@@ -1,12 +1,13 @@
 #include "Cards.h"
 #include "Orders.h"
+#include "Player.h"
 #include <iostream>
 
 int main() {
-    // Create the deck, hand, and orders list.
     Deck deck;
-    Hand hand;
-    OrdersList orders;
+    Player player;
+    Hand& hand = *player.getHand();
+    OrdersList& orders = *player.getOrdersList();
 
     // Show the starting cards.
     std::cout << "Before drawing:\n" << deck << '\n' << hand << "\n\n";
@@ -35,6 +36,13 @@ int main() {
 
     // Show the results after playing.
     std::cout << "\nAfter playing:\n" << deck << '\n' << hand << '\n' << orders;
+
+    // Prove that the OrdersList receiving the orders belongs to the Player.
+    std::cout << "\nPlayer after playing cards:\n" << player << '\n';
+    if (player.getOrdersList()->size() != 5) {
+        std::cerr << "Player's orders list did not receive all card orders.\n";
+        return 1;
+    }
 
     // Check the final card and order counts.
     if (deck.size() != 5 || hand.size() != 0 || orders.size() != 5) {
