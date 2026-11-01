@@ -2,8 +2,11 @@
 #include "Map.h"
 #include "Orders.h"
 #include "Player.h"
+#include "Cards.h"      
 
 #include <algorithm>
+#include <filesystem>   
+#include <random>       
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -11,13 +14,15 @@
 GameEngine::GameEngine()
     : currentState(GameState::Start), map(nullptr),
       activePlayers(new std::vector<Player *>()), issueOneOrder(nullptr),
-      turnNumber(0) {}
+      turnNumber(0),
+      deck(new Deck()) {} // create the deck players draw their starting cards from
 
 // Map and Player objects are borrowed, but the vector is deep-copied.
 GameEngine::GameEngine(const GameEngine &other)
     : currentState(other.currentState), map(other.map),
       activePlayers(new std::vector<Player *>(*other.activePlayers)),
-      issueOneOrder(other.issueOneOrder), turnNumber(other.turnNumber) {}
+      issueOneOrder(other.issueOneOrder), turnNumber(other.turnNumber),
+      deck(new Deck(*other.deck)) {} // deep copy: the copy gets its own deck
 
 GameEngine &GameEngine::operator=(const GameEngine &other)
 {
@@ -31,6 +36,10 @@ GameEngine &GameEngine::operator=(const GameEngine &other)
         map = other.map;
         issueOneOrder = other.issueOneOrder;
         turnNumber = other.turnNumber;
+
+        Deck *newDeck = new Deck(*other.deck); // copy the other engine's deck first
+        delete deck; // then free our old deck
+        deck = newDeck; // and keep the copy
     }
     return *this;
 }
@@ -38,6 +47,7 @@ GameEngine &GameEngine::operator=(const GameEngine &other)
 GameEngine::~GameEngine()
 {
     delete activePlayers; // Never delete a Player or Map you do not own.
+    delete deck; // the engine owns the deck, so it frees it
 }
 
 // Events follow the A2 page-2 diagram. A2 renames three A1 events:
@@ -453,4 +463,128 @@ std::ostream &operator<<(std::ostream &out, const GameEngine &engine)
     out << "GameEngine state: " << engine.getStateName()
         << " | Turn: " << engine.getTurnNumber();
     return out;
+}
+
+//  A2, Part 2: startup phase 
+
+// Reads startup commands until gamestart moves the game to the play phase.
+void GameEngine::startupPhase()
+{
+    listMapFiles(); // show which maps the user can pick
+    std::string line; // holds one command typed by the user
+    while (currentState != GameState::AssignReinforcement // keep going until the game has started
+           && std::getline(std::cin, line))// read the next command from the console
+        std::cout << handleStartupCommand(line) << "\n"; // run it and print what happened
+}
+
+// Splits a command into its word and argument, then runs it.
+// Returns the effect of the command as a string.
+std::string GameEngine::handleStartupCommand(const std::string &commandText)
+{
+    std::istringstream in(commandText);// lets us read the command word by word
+    std::string command, argument; // e.g. "loadmap" and "westeros_essos.map"
+    in >> command; // first word is the command
+    std::getline(in >> std::ws, argument); // the rest of the line is the argument
+
+    if (!isCommandAvailable(command)) // reject commands not allowed in this state
+        return "Invalid command '" + command + "' in state " + getStateName();
+
+    if (command == "loadmap") // pick the matching action for the command
+        return loadMapCommand(argument);
+    if (command == "validatemap")
+        return validateMapCommand();
+    if (command == "addplayer")
+        return addPlayerCommand(argument);
+    if (command == "gamestart")
+        return gameStartCommand();
+    return "Unknown startup command '" + command + "'"; // should not happen if the state table is right
+}
+
+// Loads a map from the maps folder, replacing any map loaded before.
+std::string GameEngine::loadMapCommand(const std::string &fileName)
+{
+    if (fileName.empty()) // the user forgot the file name
+        return "loadmap needs a file name";
+
+    MapLoader loader; // reads and parses map files
+    Map *loaded = loader.loadMap("maps/" + fileName); // try to load the chosen file
+    if (!loaded)  // nullptr means the file was bad or missing
+        return "Could not load map " + fileName;
+
+    delete map; // free the previous map, if there was one
+    map = loaded; // keep the new map in the engine
+    transition("loadmap"); // move to the maploaded state
+    return "Loaded map " + fileName;
+}
+
+// Checks that the loaded map is a valid connected graph.
+std::string GameEngine::validateMapCommand()
+{
+    if (!map || !map->validate()) // no map, or the map failed validation
+        return "Map is invalid, load another map";
+    transition("validatemap"); // move to the mapvalidated state
+    return "Map is valid";
+}
+
+// Adds a player, up to a maximum of 6.
+std::string GameEngine::addPlayerCommand(const std::string &playerName)
+{
+    if (playerName.empty()) // the user forgot the player name
+        return "addplayer needs a player name";
+    if (activePlayers->size() >= 6) // the game allows 2 to 6 players
+        return "Cannot add " + playerName + ": the maximum is 6 players";
+
+    activePlayers->push_back(new Player()); // switch to Player(playerName) once Phuc adds it
+    transition("addplayer"); // move to the playersadded state
+    return "Added player " + playerName;
+}
+
+// Distributes territories, randomizes play order, gives 50 armies
+// and 2 cards to each player, then switches to the play phase.
+std::string GameEngine::gameStartCommand()
+{
+    if (activePlayers->size() < 2)  // the game needs at least 2 players
+        return "gamestart needs at least 2 players";
+
+    std::mt19937 rng(std::random_device{}()); // random number generator for shuffling
+
+    // a) Shuffle the territories, then deal them out one at a time.
+    std::vector<Territory *> territories = map->getTerritories(); // copy, so the map's own order is untouched
+    std::shuffle(territories.begin(), territories.end(), rng);  // random order, so nobody gets a cluster
+    for (std::size_t i = 0; i < territories.size(); ++i) // go through every territory
+    {
+        Player *owner = (*activePlayers)[i % activePlayers->size()]; // next player in turn (round-robin)
+        territories[i]->setOwner(owner);  // the map records the new owner
+        owner->addTerritory(territories[i]); // the player records it too
+    }
+
+    // b) Random order of play.
+    std::shuffle(activePlayers->begin(), activePlayers->end(), rng);
+
+    // c) and d) 50 armies and 2 cards each.
+    for (Player *player : *activePlayers)
+    {
+        *player->getReinforcementsPool() = 50; // put 50 armies in the reinforcement pool
+        deck->draw(*player->getHand()); // first starting card
+        deck->draw(*player->getHand()); // second starting card
+    }
+
+    // e) Switch to the play phase.
+    transition("gamestart"); // move to the assignreinforcement state
+    return "Game started with " + std::to_string(activePlayers->size()) + " players";
+}
+
+// Returns true if the command is allowed in the current state.
+bool GameEngine::isCommandAvailable(const std::string &command) const
+{
+    std::vector<std::string> available = getAvailableCommands(); // commands allowed right now
+    return std::find(available.begin(), available.end(), command) != available.end(); // is ours in the list?
+}
+
+// Prints the map files the user can choose with loadmap.
+void GameEngine::listMapFiles() const
+{
+    std::cout << "Available maps:\n";
+    for (const auto &entry : std::filesystem::directory_iterator("maps")) // go through the maps folder
+        std::cout << "  " << entry.path().filename().string() << "\n"; // print each file name
 }
