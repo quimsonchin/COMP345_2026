@@ -57,6 +57,14 @@ const std::vector<Territory *> &Territory::getAdjacent() const {
   return adjacent;
 }
 
+// Returns true if other is a direct neighbor of this territory.
+bool Territory::isAdjacent(const Territory *other) const {
+  for (const Territory *t : adjacent)
+    if (t == other)
+      return true;
+  return false;
+}
+
 // Sets who owns this territory.
 void Territory::setOwner(Player *o) { owner = o; }
 

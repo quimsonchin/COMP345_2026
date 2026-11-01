@@ -21,6 +21,9 @@ public:
   Continent *getContinent() const;
   const std::vector<Territory *> &getAdjacent() const;
 
+// Returns true if the other territory is a direct neighbor of this one. This is a const method, so it doesn't change the object.
+  bool isAdjacent(const Territory *other) const;
+
   void setOwner(Player *owner);
   void setArmies(int armies);
   void setContinent(Continent *continent);
