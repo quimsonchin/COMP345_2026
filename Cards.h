@@ -28,6 +28,9 @@ public:
     // Destroy the card.
     ~Card();
 
+    // Return the card type.
+    CardType getType() const;
+
     // Play the card and return it to the deck.
     bool play(Hand& hand, Deck& deck, OrdersList& orders);
 

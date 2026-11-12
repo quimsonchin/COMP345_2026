@@ -14,6 +14,9 @@ Card& Card::operator=(const Card& other) {
 // Destroy the card.
 Card::~Card() {}
 
+// Return the card type.
+CardType Card::getType() const { return type; }
+
 // Print the card type.
 std::ostream& operator<<(std::ostream& out, const Card& card) {
     switch (card.type) {
