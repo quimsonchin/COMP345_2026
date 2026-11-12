@@ -40,4 +40,5 @@ public:
 
     // Other methods
     void addTerritory(Territory *territory);
+    void removeTerritory(Territory *territory);
 };
