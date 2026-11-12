@@ -1,6 +1,7 @@
 #ifndef GAME_ENGINE_H
 #define GAME_ENGINE_H
 
+#include "LoggingObserver.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,8 +23,9 @@ enum class GameState {
 // Controls the game's flow by accepting only valid transitions.
 // This A1 class does not load maps or execute game actions: those
 // responsibilities are demonstrated separately by the other parts.
-class GameEngine {
+class GameEngine : public Subject, public ILoggable {
 public:
+    std::string stringToLog() const override;
     // Initialize an engine in the start state.
     GameEngine();
 

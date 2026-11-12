@@ -58,3 +58,23 @@ To build a single driver, use `cmake --build build --target MapDriver` (or any o
 On Windows, run the executables as `.\build\MapDriver.exe` (some generators put them in `build\Debug\` instead).
 
 If you add a new `.cpp` file or a new dependency between parts, add it to the matching `add_executable` line in `CMakeLists.txt`.
+
+## Assignment 2, Part 5: logging
+
+`LoggingObserver.h/.cpp` implements Subject, Observer, ILoggable and LogObserver.
+Attach a LogObserver to each object whose events should be recorded. The observer
+must remain alive while attached; use Detach before destroying it if necessary.
+Copies start without observers; assignment preserves existing subscriptions.
+
+Build and run the demonstration:
+
+```
+cmake --build build --target LoggingObserverDriver
+./build/LoggingObserverDriver
+```
+
+Enter `loadmap` when prompted. The driver appends command, command effect,
+state change, order addition and order execution entries to `gamelog.txt` in
+the current folder. Both accepted and rejected order effects are demonstrated.
+The minimal CommandProcessing classes support this logging demonstration;
+Part 1 validation and file adapter, and Parts 2-4, are left to their owners.

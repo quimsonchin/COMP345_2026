@@ -16,7 +16,7 @@ std::string territoryName(const Territory* territory) {
 }
 
 Order::Order() : effect(""), executed(false) {}
-Order::Order(const Order& other) : effect(other.effect), executed(other.executed) {}
+Order::Order(const Order& other) : Subject(other), effect(other.effect), executed(other.executed) {}
 Order& Order::operator=(const Order& other) {
     if (this != &other) { effect = other.effect; executed = other.executed; }
     return *this;
@@ -47,10 +47,11 @@ bool Deploy::validate() const {
 void Deploy::execute() {
     executed = false;
     effect = "Rejected: invalid deploy order";
-    if (!validate()) return;
+    if (!validate()) { Notify(this); return; }
     // A1: report acceptance; no actual map changes or pool debit yet.
     executed = true;
     effect = "Accepted: deploy game action deferred (A1)";
+    Notify(this);
 }
 Order* Deploy::clone() const { return new Deploy(*this); }
 std::string Deploy::getDescription() const {
@@ -78,9 +79,10 @@ bool Advance::validate() const {
 void Advance::execute() {
     executed = false;
     effect = "Rejected: invalid advance order";
-    if (!validate()) return;
+    if (!validate()) { Notify(this); return; }
     executed = true;
     effect = "Accepted: advance game action deferred (A1)";
+    Notify(this);
 }
 Order* Advance::clone() const { return new Advance(*this); }
 std::string Advance::getDescription() const {
@@ -109,9 +111,10 @@ bool Bomb::validate() const {
 void Bomb::execute() {
     executed = false;
     effect = "Rejected: invalid bomb order";
-    if (!validate()) return;
+    if (!validate()) { Notify(this); return; }
     executed = true;
     effect = "Accepted: bomb game action deferred (A1)";
+    Notify(this);
 }
 Order* Bomb::clone() const { return new Bomb(*this); }
 std::string Bomb::getDescription() const { return "Bomb " + territoryName(target); }
@@ -130,9 +133,10 @@ bool Blockade::validate() const { return player && target && target->getOwner() 
 void Blockade::execute() {
     executed = false;
     effect = "Rejected: invalid blockade order";
-    if (!validate()) return;
+    if (!validate()) { Notify(this); return; }
     executed = true;
     effect = "Accepted: blockade game action deferred (A1)";
+    Notify(this);
 }
 Order* Blockade::clone() const { return new Blockade(*this); }
 std::string Blockade::getDescription() const { return "Blockade " + territoryName(target); }
@@ -157,9 +161,10 @@ bool Airlift::validate() const {
 void Airlift::execute() {
     executed = false;
     effect = "Rejected: invalid airlift order";
-    if (!validate()) return;
+    if (!validate()) { Notify(this); return; }
     executed = true;
     effect = "Accepted: airlift game action deferred (A1)";
+    Notify(this);
 }
 Order* Airlift::clone() const { return new Airlift(*this); }
 std::string Airlift::getDescription() const {
@@ -183,9 +188,10 @@ bool Negotiate::validate() const { return player && targetPlayer && player != ta
 void Negotiate::execute() {
     executed = false;
     effect = "Rejected: invalid negotiate order";
-    if (!validate()) return;
+    if (!validate()) { Notify(this); return; }
     executed = true;
     effect = "Accepted: negotiate game action deferred (A1)";
+    Notify(this);
 }
 Order* Negotiate::clone() const { return new Negotiate(*this); }
 std::string Negotiate::getDescription() const { return "Negotiate with another player"; }
@@ -219,6 +225,7 @@ void OrdersList::addOrder(Order* order) {
         throw std::invalid_argument("The same Order* is already in this list");
     // Take ownership only after successfully adding the pointer.
     orders.push_back(order);
+    Notify(this);
 }
 bool OrdersList::move(int fromIndex, int toIndex) {
     if (fromIndex < 0 || toIndex < 0 || fromIndex >= size() || toIndex >= size()) return false;
@@ -247,4 +254,13 @@ std::ostream& operator<<(std::ostream& out, const OrdersList& list) {
     for (std::size_t i = 0; i < list.orders.size(); ++i)
         out << i << ": " << *list.orders[i] << '\n';
     return out;
+}
+
+// Log the stored result of any concrete order execution.
+std::string Order::stringToLog() const {
+    return "Order executed: " + getDescription() + " | " + effect;
+}
+// addOrder always appends, so the last item is the new order.
+std::string OrdersList::stringToLog() const {
+    return orders.empty() ? "OrdersList is empty" : "Order added: " + orders.back()->getDescription();
 }
