@@ -1,5 +1,5 @@
 #include "Player.h"
-#include <algorithm> // For std::find
+#include <algorithm> // For std::find, std::stable_sort
 #include <utility>   // For std::swap
 
 namespace
@@ -92,11 +92,16 @@ void Player::clear()
     delete negotiatedWith; // Delete the vector, NOT the Player objects
 }
 
-/* Default constructor:
-   Every pointer gets initialized, so none is a dangling pointer or garbage. */
+/* Default constructor */
 Player::Player()
 {
     init("Player");
+}
+
+/* Constructor taking the player's name */
+Player::Player(const std::string &playerName)
+{
+    init(playerName);
 }
 
 /* Parameterized constructor:
@@ -147,8 +152,7 @@ Player &Player::operator=(const Player &other)
         std::swap(issueStage, copy.issueStage);
         std::swap(conqueredThisTurn, copy.conqueredThisTurn);
         std::swap(negotiatedWith, copy.negotiatedWith);
-        /* 'copy' now holds the old members and
-           'copy's destructor is automatically called when it goes out of scope so the old data in the heap is freed. */
+        // 'copy' now holds the old members and frees them when it goes out of scope.
     }
     return *this;
 }
@@ -156,15 +160,12 @@ Player &Player::operator=(const Player &other)
 // Stream insertion operator
 std::ostream &operator<<(std::ostream &os, const Player &player)
 {
-    // Print the number of territories, the hand, and the orders list. The reinforcements pool is also printed.
-    os << "Player with " << player.territories->size() << " territories, "
+    os << "Player " << *player.name << " with " << player.territories->size() << " territories, "
        << "hand: " << *player.hand << ", "
        << "orders: " << *player.orders << ", "
        << "reinforcements pool: " << *player.reinforcementsPool;
     return os;
 }
-
-/* Required methods */
 
 /* Territories the player should protect, most threatened first: the ones with the most
    enemy neighbors, then the ones with the fewest armies. The caller owns the returned vector. */
@@ -178,12 +179,6 @@ std::vector<Territory *> *Player::toDefend()
             defend->push_back(mine);
         }
     }
-    // Sort the defend list so the most urgent territories come first:
-    //  1. territories with more enemy neighbors (most likely to be attacked) come first;
-    //  2. if tied, territories with fewer armies (weakest) come first.
-    // stable_sort keeps the original order of territories that tie on both rules,
-    // so the result is the same every time. The comparator returns true when 'a'
-    // must be placed before 'b'.
     std::stable_sort(defend->begin(), defend->end(), [this](const Territory *a, const Territory *b)
                      {
                          int threatA = enemyNeighborCount(a, this);
@@ -200,27 +195,25 @@ std::vector<Territory *> *Player::toDefend()
    that negotiated with this one are left out. The caller owns the returned vector. */
 std::vector<Territory *> *Player::toAttack()
 {
-    std::vector<Territory *> *attackable = new std::vector<Territory *>(); // Create a new, empty list of attackable territories.
+    std::vector<Territory *> *attackable = new std::vector<Territory *>();
     for (Territory *mine : *territories)
     {
         if (mine->getOwner() != this)
         {
             continue; // Ignore territories lost since they were added
         }
-        // For each territory owned by the player
         for (Territory *neighbor : mine->getAdjacent())
-        { // For each adjacent territory
-            // If the neighbor is not owned by the player , has not negotiated with this player, and is not already in the attackable list, add it to the list.
-            if (neighbor->getOwner() != this && !hasNegotiatedWith(neighbor->getOwner()) && std::find(attackable->begin(), attackable->end(), neighbor) == attackable->end())
+        {
+            if (neighbor->getOwner() != this && !hasNegotiatedWith(neighbor->getOwner()) &&
+                std::find(attackable->begin(), attackable->end(), neighbor) == attackable->end())
             {
                 attackable->push_back(neighbor);
             }
         }
     }
-    // Sort the attackable list so the weakest territories come first (fewest armies). The comparator returns true when 'a' must be placed before 'b'.
     std::stable_sort(attackable->begin(), attackable->end(), [](const Territory *a, const Territory *b)
                      { return a->getArmies() < b->getArmies(); });
-    return attackable; // Return the list of territories that can be attacked. The caller owns this vector and is responsible for deleting it.
+    return attackable;
 }
 
 /* Deploy part of the armies that are still free, spread over the toDefend() list.
@@ -233,12 +226,8 @@ bool Player::issueDeploy()
     if (available > 0 && !mine->empty())
     {
         int armies = (available + 1) / 2; // Half of what is left (rounded up), so deploys are spread out
-        // Pick a territory in the toDefend() list, cycling through the list as orders are issued
         Territory *target = (*mine)[orders->size() % mine->size()];
-        // Create a new Deploy order and add it to the player's orders list. The Deploy order will use the player's reinforcements pool to deploy armies to the target territory.
         orders->addOrder(new Deploy(this, target, armies, reinforcementsPool));
-        // Update the pending deployments counter to reflect the armies that have been committed to deploy orders this turn.
-        // This ensures that the player does not exceed their available reinforcements when issuing additional deploy orders.
         *pendingDeployments += armies;
         issued = true;
     }
@@ -321,7 +310,7 @@ bool Player::issueCardOrder(Deck *deck)
             }
             break;
         case CardType::Reinforcement:
-            isReinforcement = true; // Adds armies to the pool, no order is created
+            isReinforcement = true;
             break;
         case CardType::Blockade:
             if (mine->size() >= 2) // Never blockade the only territory we have
@@ -361,28 +350,28 @@ bool Player::issueCardOrder(Deck *deck)
             break;
         }
 
-        if (isReinforcement)
+        if (isReinforcement || order != nullptr)
         {
-            *reinforcementsPool += REINFORCEMENT_CARD_ARMIES;
-            if (card->play(*hand, *deck, *orders, nullptr))
+            // Card::play() puts its own placeholder order in the list it is given,
+            // so give it a scratch list and add the real order to the player's list.
+            OrdersList *scratch = new OrdersList();
+            if (card->play(*hand, *deck, *scratch))
             {
-                issued = true;
-            }
-            else
-            {
-                *reinforcementsPool -= REINFORCEMENT_CARD_ARMIES; // Undo, the card was not played
-            }
-        }
-        else if (order != nullptr)
-        {
-            if (card->play(*hand, *deck, *orders, order))
-            {
+                if (isReinforcement)
+                {
+                    *reinforcementsPool += REINFORCEMENT_CARD_ARMIES; // Adds armies to the pool, no order is created
+                }
+                else
+                {
+                    orders->addOrder(order);
+                }
                 issued = true;
             }
             else
             {
                 delete order; // The card was not played, so the order was never added
             }
+            delete scratch; // Deletes the placeholder order
         }
     }
     delete mine;
