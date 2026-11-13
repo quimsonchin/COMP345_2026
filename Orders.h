@@ -8,6 +8,7 @@
 
 class Player;
 class Territory;
+class Deck;
 
 // Base type for all orders. Orders borrow Player/Territory pointers.
 class Order : public Subject, public ILoggable {
@@ -17,6 +18,12 @@ public:
     Order(const Order& other);
     Order& operator=(const Order& other);
     virtual ~Order();
+    static void registerNegotiation(Player* a, Player* b);
+    static bool areNegotiating(Player* a, Player* b);
+    static void clearNegotiations();
+    static void recordConquest(Player* player);
+    static int awardConquestCards(Deck& deck);
+    static void clearConquests();
 
     virtual bool validate() const = 0;
     virtual void execute() = 0;

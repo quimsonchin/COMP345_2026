@@ -174,3 +174,19 @@ void Player::addTerritory(Territory *territory)
     }
     territory->setOwner(this); // Set the owner of the territory to this player
 }
+
+void Player::removeTerritory(Territory* territory)
+{
+    if (territory == nullptr) {
+        return;
+    }
+
+    territories->erase(
+        std::remove(
+            territories->begin(),
+            territories->end(),
+            territory
+        ),
+        territories->end()
+    );
+}
