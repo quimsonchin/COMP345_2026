@@ -1,9 +1,30 @@
 #include "Orders.h"
 #include "Map.h"
+#include "Player.h"
+#include "Cards.h"
+#include<random>
 #include <algorithm>
 #include <stdexcept>
+#include <set>
+#include <utility>
 
 namespace {
+std::set<Player*> conqueredThisTurn;
+std::set<std::pair<Player*, Player*>> negotiations;
+
+std::pair<Player*, Player*> negotiationKey(
+    Player* a,
+    Player* b
+) {
+    std::less<Player*> less;
+
+    if (less(b, a)) {
+        return {b, a};
+    }
+
+    return {a, b};
+}
+
 // Check an adjacency edge in the Map.h territory graph.
 bool adjacentTo(const Territory* source, const Territory* target) {
     if (!source || !target) return false;
@@ -16,12 +37,58 @@ std::string territoryName(const Territory* territory) {
 }
 
 Order::Order() : effect(""), executed(false) {}
-Order::Order(const Order& other) : effect(other.effect), executed(other.executed) {}
+Order::Order(const Order& other) : Subject(other), effect(other.effect), executed(other.executed) {}
 Order& Order::operator=(const Order& other) {
     if (this != &other) { effect = other.effect; executed = other.executed; }
     return *this;
 }
 Order::~Order() {}
+// Negotiation methods
+void Order::registerNegotiation(Player* a, Player* b) {
+    if (a != nullptr && b != nullptr && a != b) {
+        negotiations.insert(negotiationKey(a, b));
+    }
+}
+
+bool Order::areNegotiating(Player* a, Player* b) {
+    if (a == nullptr || b == nullptr) {
+        return false;
+    }
+
+    return negotiations.count(negotiationKey(a, b)) > 0;
+}
+
+void Order::clearNegotiations() {
+    negotiations.clear();
+}
+
+void Order::recordConquest(Player* player) {
+    if (player != nullptr) {
+        conqueredThisTurn.insert(player);
+    }
+}
+
+int Order::awardConquestCards(Deck& deck) {
+    int cardsAwarded = 0;
+
+    for (Player* player : conqueredThisTurn) {
+        if (player != nullptr &&
+            deck.draw(*player->getHand())) {
+            ++cardsAwarded;
+        }
+    }
+
+    // Clear the record for the next turn.
+    conqueredThisTurn.clear();
+
+    return cardsAwarded;
+}
+
+void Order::clearConquests() {
+    conqueredThisTurn.clear();
+}
+
+
 std::string Order::getEffect() const { return effect; }
 bool Order::wasExecuted() const { return executed; }
 std::ostream& operator<<(std::ostream& out, const Order& order) {
@@ -44,14 +111,28 @@ bool Deploy::validate() const {
     return player && target && reinforcementPool && armies > 0 &&
            target->getOwner() == player && *reinforcementPool >= armies;
 }
+
 void Deploy::execute() {
     executed = false;
     effect = "Rejected: invalid deploy order";
-    if (!validate()) return;
-    // A1: report acceptance; no actual map changes or pool debit yet.
+
+    if (!validate()) {
+        Notify(this);
+        return;
+    }
+
+    // Deduct armies from the reinforcement pool.
+    *reinforcementPool -= armies;
+
+    // Add armies to the target territory.
+    target->setArmies(target->getArmies() + armies);
+
     executed = true;
-    effect = "Accepted: deploy game action deferred (A1)";
+    effect = "Deployed " + std::to_string(armies)
+           + " armies to " + target->getName();
+    Notify(this);
 }
+
 Order* Deploy::clone() const { return new Deploy(*this); }
 std::string Deploy::getDescription() const {
     return "Deploy " + std::to_string(armies) + " armies to " + territoryName(target);
@@ -70,18 +151,141 @@ Advance& Advance::operator=(const Advance& other) {
     return *this;
 }
 Advance::~Advance() {}
+
 bool Advance::validate() const {
-    return player && source && target && source != target && armies > 0 &&
-           source->getOwner() == player && source->getArmies() >= armies &&
-           adjacentTo(source, target);
+    if (!player || !source || !target ||
+        source == target || armies <= 0) {
+        return false;
+    }
+
+    if (source->getOwner() != player ||
+        source->getArmies() < armies ||
+        !adjacentTo(source, target)) {
+        return false;
+    }
+
+    Player* defender = target->getOwner();
+
+    // Diplomacy prevents attacks in either direction.
+    if (defender != nullptr &&
+        defender != player &&
+        Order::areNegotiating(player, defender)) {
+        return false;
+    }
+
+    return true;
 }
+
+
 void Advance::execute() {
     executed = false;
     effect = "Rejected: invalid advance order";
-    if (!validate()) return;
+
+    // Validate before execution.
+    if (!validate()) {
+        Notify(this);
+        return;
+    }
+
+    // CASE 1: Friendly movement
+    if (target->getOwner() == player) {
+        source->setArmies(source->getArmies() - armies);
+        target->setArmies(target->getArmies() + armies);
+
+        executed = true;
+        effect = "Moved " + std::to_string(armies)
+               + " armies from " + source->getName()
+               + " to " + target->getName();
+        Notify(this);
+        return;
+    }
+
+    // CASE 2: Attack enemy territory
+    Player* defender = target->getOwner();
+
+    int attackingArmies = armies;
+    int defendingArmies = target->getArmies();
+
+    // Remove attacking armies from source.
+    source->setArmies(source->getArmies() - armies);
+
+    // Random battle simulation.
+    static std::mt19937 rng(std::random_device{}());
+
+    std::bernoulli_distribution attackerHit(0.60);
+    std::bernoulli_distribution defenderHit(0.70);
+
+    int defenderLosses = 0;
+    int attackerLosses = 0;
+
+    // Each attacker gets one independent chance.
+    for (int i = 0; i < attackingArmies; ++i) {
+        if (attackerHit(rng)) {
+            ++defenderLosses;
+        }
+    }
+
+    // Each defender gets one independent chance.
+    // Use ORIGINAL army counts for simultaneous battle.
+    for (int i = 0; i < defendingArmies; ++i) {
+        if (defenderHit(rng)) {
+            ++attackerLosses;
+        }
+    }
+
+    // Casualties cannot exceed available armies.
+    defenderLosses = std::min(
+        defenderLosses, defendingArmies
+    );
+    attackerLosses = std::min(
+        attackerLosses, attackingArmies
+    );
+
+    int survivingAttackers =
+        attackingArmies - attackerLosses;
+
+    int survivingDefenders =
+        defendingArmies - defenderLosses;
+
+    target->setArmies(survivingDefenders);
+
+    // CASE 2A: Conquest
+    if (survivingDefenders == 0 &&
+        survivingAttackers > 0) {
+
+        if (defender != nullptr) {
+            defender->removeTerritory(target);
+        }
+
+        // This also sets the territory owner to player.
+        player->addTerritory(target);
+
+        target->setArmies(survivingAttackers);
+        Order::recordConquest(player);
+        player->setConqueredThisTurn(true);
+        effect = "Conquered " + target->getName()
+               + " with "
+               + std::to_string(survivingAttackers)
+               + " surviving armies.";
+    }
+    else {
+        // Implementation choice:
+        // surviving attackers retreat to source.
+        source->setArmies(
+            source->getArmies() + survivingAttackers
+        );
+
+        effect = "Attack on " + target->getName()
+               + " failed. Attackers survived: "
+               + std::to_string(survivingAttackers)
+               + ", defenders survived: "
+               + std::to_string(survivingDefenders);
+    }
+
     executed = true;
-    effect = "Accepted: advance game action deferred (A1)";
+    Notify(this);
 }
+
 Order* Advance::clone() const { return new Advance(*this); }
 std::string Advance::getDescription() const {
     return "Advance " + std::to_string(armies) + " armies from " + territoryName(source) +
@@ -101,18 +305,42 @@ Bomb& Bomb::operator=(const Bomb& other) {
     return *this;
 }
 Bomb::~Bomb() {}
+
 bool Bomb::validate() const {
-    return player && target && adjacentOwnedTerritory && target->getOwner() &&
-           target->getOwner() != player && adjacentOwnedTerritory->getOwner() == player &&
-           adjacentTo(adjacentOwnedTerritory, target);
+    return player &&
+           target &&
+           adjacentOwnedTerritory &&
+           target->getOwner() &&
+           target->getOwner() != player &&
+           adjacentOwnedTerritory->getOwner() == player &&
+           adjacentTo(adjacentOwnedTerritory, target) &&
+           !Order::areNegotiating(player, target->getOwner());
 }
+
+
 void Bomb::execute() {
     executed = false;
     effect = "Rejected: invalid bomb order";
-    if (!validate()) return;
+
+    if (!validate()) {
+        Notify(this);
+        return;
+    }
+
+    // Remove half of the enemy armies.
+    int before = target->getArmies();
+    int after = before / 2;
+
+    target->setArmies(after);
+
     executed = true;
-    effect = "Accepted: bomb game action deferred (A1)";
+    effect = "Bombed " + target->getName()
+           + ": armies reduced from "
+           + std::to_string(before)
+           + " to " + std::to_string(after);
+    Notify(this);
 }
+
 Order* Bomb::clone() const { return new Bomb(*this); }
 std::string Bomb::getDescription() const { return "Bomb " + territoryName(target); }
 std::ostream& operator<<(std::ostream& out, const Bomb& order) {
@@ -127,13 +355,37 @@ Blockade& Blockade::operator=(const Blockade& other) {
 }
 Blockade::~Blockade() {}
 bool Blockade::validate() const { return player && target && target->getOwner() == player; }
+
 void Blockade::execute() {
     executed = false;
     effect = "Rejected: invalid blockade order";
-    if (!validate()) return;
+
+    if (!validate()) {
+        Notify(this);
+        return;
+    }
+
+    // One shared Neutral player for this game demonstration.
+    static Player neutralPlayer;
+
+    Player* previousOwner = target->getOwner();
+
+    // Double armies.
+    target->setArmies(target->getArmies() * 2);
+
+    // Remove territory from its previous owner.
+    previousOwner->removeTerritory(target);
+
+    // Transfer ownership to Neutral player.
+    neutralPlayer.addTerritory(target);
+
     executed = true;
-    effect = "Accepted: blockade game action deferred (A1)";
+    effect = "Blockade executed on " + target->getName()
+           + ". Armies doubled and ownership "
+             "transferred to Neutral player.";
+    Notify(this);
 }
+
 Order* Blockade::clone() const { return new Blockade(*this); }
 std::string Blockade::getDescription() const { return "Blockade " + territoryName(target); }
 std::ostream& operator<<(std::ostream& out, const Blockade& order) {
@@ -150,17 +402,39 @@ Airlift& Airlift::operator=(const Airlift& other) {
     return *this;
 }
 Airlift::~Airlift() {}
+
 bool Airlift::validate() const {
-    return player && source && target && source != target && armies > 0 &&
-           source->getOwner() == player && source->getArmies() >= armies;
+    return player && source && target &&
+           source != target &&
+           armies > 0 &&
+           source->getOwner() == player &&
+           target->getOwner() == player &&
+           source->getArmies() >= armies;
 }
+
+
 void Airlift::execute() {
     executed = false;
     effect = "Rejected: invalid airlift order";
-    if (!validate()) return;
+
+    if (!validate()) {
+        Notify(this);
+        return;
+    }
+
+    // Remove armies from source territory.
+    source->setArmies(source->getArmies() - armies);
+
+    // Add armies to target territory.
+    target->setArmies(target->getArmies() + armies);
+
     executed = true;
-    effect = "Accepted: airlift game action deferred (A1)";
+    effect = "Airlifted " + std::to_string(armies)
+           + " armies from " + source->getName()
+           + " to " + target->getName();
+    Notify(this);
 }
+
 Order* Airlift::clone() const { return new Airlift(*this); }
 std::string Airlift::getDescription() const {
     return "Airlift " + std::to_string(armies) + " armies from " + territoryName(source) +
@@ -180,13 +454,26 @@ Negotiate& Negotiate::operator=(const Negotiate& other) {
 }
 Negotiate::~Negotiate() {}
 bool Negotiate::validate() const { return player && targetPlayer && player != targetPlayer; }
+
 void Negotiate::execute() {
     executed = false;
     effect = "Rejected: invalid negotiate order";
-    if (!validate()) return;
+
+    if (!validate()) {
+        Notify(this);
+        return;
+    }
+
+    Order::registerNegotiation(player, targetPlayer);
+    player->addNegotiatedPlayer(targetPlayer);
+    targetPlayer->addNegotiatedPlayer(player);
     executed = true;
-    effect = "Accepted: negotiate game action deferred (A1)";
+    effect = "Negotiation successful. "
+             "Both players cannot attack each other "
+             "for the remainder of this turn.";
+    Notify(this);
 }
+
 Order* Negotiate::clone() const { return new Negotiate(*this); }
 std::string Negotiate::getDescription() const { return "Negotiate with another player"; }
 std::ostream& operator<<(std::ostream& out, const Negotiate& order) {
@@ -194,7 +481,7 @@ std::ostream& operator<<(std::ostream& out, const Negotiate& order) {
 }
 
 OrdersList::OrdersList() {}
-OrdersList::OrdersList(const OrdersList& other) {
+OrdersList::OrdersList(const OrdersList& other) : Subject(other) {
     try {
         orders.reserve(other.orders.size());
         for (Order* order : other.orders) orders.push_back(order->clone());
@@ -219,6 +506,7 @@ void OrdersList::addOrder(Order* order) {
         throw std::invalid_argument("The same Order* is already in this list");
     // Take ownership only after successfully adding the pointer.
     orders.push_back(order);
+    Notify(this);
 }
 bool OrdersList::move(int fromIndex, int toIndex) {
     if (fromIndex < 0 || toIndex < 0 || fromIndex >= size() || toIndex >= size()) return false;
@@ -247,4 +535,13 @@ std::ostream& operator<<(std::ostream& out, const OrdersList& list) {
     for (std::size_t i = 0; i < list.orders.size(); ++i)
         out << i << ": " << *list.orders[i] << '\n';
     return out;
+}
+
+// Log the order effect.
+std::string Order::stringToLog() const {
+    return "Order executed: " + getDescription() + " | " + effect;
+}
+// Log the last order added.
+std::string OrdersList::stringToLog() const {
+    return orders.empty() ? "OrdersList is empty" : "Order added: " + orders.back()->getDescription();
 }

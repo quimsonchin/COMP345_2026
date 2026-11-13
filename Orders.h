@@ -1,20 +1,29 @@
 #ifndef ORDERS_H
 #define ORDERS_H
 
+#include "LoggingObserver.h"
 #include <iostream>
 #include <string>
 #include <vector>
 
 class Player;
 class Territory;
+class Deck;
 
 // Base type for all orders. Orders borrow Player/Territory pointers.
-class Order {
+class Order : public Subject, public ILoggable {
 public:
+    std::string stringToLog() const override;
     Order();
     Order(const Order& other);
     Order& operator=(const Order& other);
     virtual ~Order();
+    static void registerNegotiation(Player* a, Player* b);
+    static bool areNegotiating(Player* a, Player* b);
+    static void clearNegotiations();
+    static void recordConquest(Player* player);
+    static int awardConquestCards(Deck& deck);
+    static void clearConquests();
 
     virtual bool validate() const = 0;
     virtual void execute() = 0;
@@ -135,8 +144,9 @@ private:
 };
 
 // Owns Orders; do not insert the same Order* into two owning lists.
-class OrdersList {
+class OrdersList : public Subject, public ILoggable {
 public:
+    std::string stringToLog() const override;
     OrdersList();
     OrdersList(const OrdersList& other);
     OrdersList& operator=(const OrdersList& other);

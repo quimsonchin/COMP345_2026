@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "LoggingObserver.h"
 
 class Map;
 class Player;
@@ -24,7 +25,7 @@ enum class GameState
 };
 
 // A2 game controller.
-class GameEngine
+class GameEngine : public Subject, public ILoggable
 {
 public:
     GameEngine();
@@ -39,7 +40,7 @@ public:
     std::string getStateName() const;
     std::vector<std::string> getAvailableCommands() const;
     bool isFinished() const;
-    std::string stringToLog() const;
+    std::string stringToLog() const override;
 
     // Kaila supplies the map and the list of Player objects after startup.
     // They must outlive the GameEngine and its game loop.

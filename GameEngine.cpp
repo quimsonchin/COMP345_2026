@@ -15,7 +15,7 @@ GameEngine::GameEngine()
 
 // Map and Player objects are borrowed, but the vector is deep-copied.
 GameEngine::GameEngine(const GameEngine &other)
-    : currentState(other.currentState), map(other.map),
+    : Subject(other), currentState(other.currentState), map(other.map),
       activePlayers(new std::vector<Player *>(*other.activePlayers)),
       issueOneOrder(other.issueOneOrder), turnNumber(other.turnNumber) {}
 
@@ -134,6 +134,8 @@ bool GameEngine::transition(const std::string &event)
 
     if (!accepted)
         return false;
+
+    const bool stateChanged = (currentState != next);
     currentState = next;
     if (command == "replay")
     {
@@ -142,7 +144,11 @@ bool GameEngine::transition(const std::string &event)
         map = nullptr;
         turnNumber = 0;
     }
-    // TODO (Alexandre): Notify(this) here when Subject/ILoggable is merged.
+    if (stateChanged)
+    {
+        Notify(this);
+    }
+
     return true;
 }
 

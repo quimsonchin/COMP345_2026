@@ -1,11 +1,9 @@
 #include "Orders.h"
 #include "Map.h"
+#include "Player.h"
 #include <iostream>
 #include <string>
-
-// TEST-ONLY player identity. Remove this when real Player.h becomes available.
-
-class Player {};
+#include <algorithm>
 
 namespace {
 int passed = 0;
@@ -47,13 +45,28 @@ int main() {
     gameMap.addEdge(pentos, meereen);
     gameMap.addEdge(meereen, qarth);
     check(gameMap.validate(), "Teammate's Map validates with Westeros/Essos");
-    winterfell->setOwner(&p1); winterfell->setArmies(15);
-    kingsLanding->setOwner(&p2); kingsLanding->setArmies(8);
-    dorne->setOwner(&p2); dorne->setArmies(5);
-    pentos->setOwner(&p2); pentos->setArmies(7);
-    braavos->setOwner(&p2); braavos->setArmies(4);
-    meereen->setOwner(&p2); meereen->setArmies(6);
-    qarth->setOwner(&p1); qarth->setArmies(3);
+   
+    p1.addTerritory(winterfell);
+    winterfell->setArmies(15);
+
+    p2.addTerritory(kingsLanding);
+    kingsLanding->setArmies(8);
+
+    p2.addTerritory(dorne);
+    dorne->setArmies(5);
+
+    p2.addTerritory(pentos);
+    pentos->setArmies(7);
+
+    p2.addTerritory(braavos);
+    braavos->setArmies(4);
+
+    p2.addTerritory(meereen);
+    meereen->setArmies(6);
+
+    p1.addTerritory(qarth);
+    qarth->setArmies(3);
+
     // Neutral territory outside the validated game map for invalid Bomb test.
     Territory theWall("The Wall");
 
@@ -65,12 +78,50 @@ int main() {
     Airlift airlift(&p1, winterfell, qarth, 2); // not adjacent
     Negotiate negotiate(&p1, &p2);
     testOrder(deploy, true, "Deploy valid");
-    testOrder(advance, true, "Advance valid");
-    testOrder(bomb, true, "Bomb valid");
-    testOrder(blockade, true, "Blockade valid");
-    testOrder(airlift, true, "Airlift valid (nonadjacent)");
-    testOrder(negotiate, true, "Negotiate valid");
+    check(winterfell->getArmies() == 20,
+      "Deploy adds armies to territory");
 
+    check(reinforcements == 7,
+      "Deploy deducts reinforcement pool");
+    check(advance.validate(),
+      "Advance attack validation before battle");
+    testOrder(bomb, true, "Bomb valid");
+    check(kingsLanding->getArmies() == 4,
+      "Bomb removes half of enemy armies");
+    //move airlift to before blockade
+    testOrder(airlift, true, "Airlift valid (nonadjacent)");
+    check(winterfell->getArmies() == 18,
+      "Airlift removes armies from source");
+
+    check(qarth->getArmies() == 5,
+      "Airlift adds armies to target");
+    testOrder(blockade, true, "Blockade valid");
+    check(qarth->getArmies() == 10,
+      "Blockade doubles armies");
+
+    check(qarth->getOwner() != &p1 &&
+      qarth->getOwner() != nullptr,
+      "Blockade transfers territory to Neutral");
+    
+    testOrder(negotiate, true, "Negotiate valid");
+    check(Order::areNegotiating(&p1, &p2),
+      "Diplomacy registered");
+    check(p1.hasNegotiatedWith(&p2),
+      "Player 1 knows negotiation");
+    check(p2.hasNegotiatedWith(&p1),
+      "Player 2 knows negotiation");
+
+    Advance blockedAttack(
+    &p1, winterfell, kingsLanding, 1
+    );
+
+    check(!blockedAttack.validate(),
+      "Negotiation prevents attack");
+
+    Order::clearNegotiations();
+
+    check(blockedAttack.validate(),
+      "Attack allowed after turn reset");
     Deploy invalidDeploy(&p1, kingsLanding, 5, &reinforcements);
     Deploy overBudget(&p1, winterfell, 50, &reinforcements);
     Advance invalidAdvance(&p1, winterfell, kingsLanding, 100);
@@ -89,6 +140,127 @@ int main() {
     testOrder(invalidBlockade, false, "Blockade enemy territory");
     testOrder(invalidAirlift, false, "Airlift enemy source");
     testOrder(invalidNegotiate, false, "Negotiate self");
+
+    
+    std::cout << "\n=== Advance Battle Tests ===\n";
+
+    // TEST 1: Friendly movement
+    // King's Landing and Pentos are adjacent and owned by p2.
+    int sourceBefore = kingsLanding->getArmies();
+    int targetBefore = pentos->getArmies();
+
+    Advance friendlyMove(&p2, kingsLanding, pentos, 2);
+
+    testOrder(friendlyMove, true, "Advance friendly");
+
+    check(kingsLanding->getArmies() == sourceBefore - 2,
+      "Friendly Advance deducts source armies");
+
+    check(pentos->getArmies() == targetBefore + 2,
+      "Friendly Advance increases target armies");
+
+
+    // TEST 2: Guaranteed conquest
+    // Zero defenders gives us a deterministic test.
+    kingsLanding->setArmies(0);
+
+    int winterfellBefore = winterfell->getArmies();
+
+    Advance conquest(&p1, winterfell, kingsLanding, 3);
+
+    testOrder(conquest, true, "Advance conquest");
+
+    check(kingsLanding->getOwner() == &p1,
+      "Conquest transfers territory ownership");
+    check(p1.hasConqueredThisTurn(),
+      "Player conquest flag updated");
+    check(kingsLanding->getArmies() == 3,
+      "Surviving attackers occupy conquered territory");
+    check(winterfell->getArmies() == winterfellBefore - 3,
+      "Conquest removes armies from source");
+
+    auto& p1Territories = *p1.getTerritories();
+    auto& p2Territories = *p2.getTerritories();
+
+    check(std::find(p1Territories.begin(),
+                p1Territories.end(),
+                kingsLanding) != p1Territories.end(),
+      "Attacker territory list updated");
+
+    check(std::find(p2Territories.begin(),
+                p2Territories.end(),
+                kingsLanding) == p2Territories.end(),
+      "Defender territory list updated");
+
+    std::cout << "\n=== Conquest Card Reward Tests ===\n";
+
+    // Start with a fresh deck and an empty hand.
+    Deck rewardDeck;
+
+    int cardsBefore = p1.getHand()->size();
+    int deckBefore = rewardDeck.size();
+
+    // Player 1 has already conquered King's Landing.
+    // Conquer another adjacent territory in the SAME turn.
+    pentos->setArmies(0);
+
+    Advance secondConquest(
+        &p1, kingsLanding, pentos, 1
+    );
+
+    secondConquest.execute();
+
+    check(pentos->getOwner() == &p1,
+      "Second territory conquered in same turn");
+
+    // End of turn: award cards.
+    int awarded = Order::awardConquestCards(rewardDeck);
+
+    check(awarded == 1,
+      "Only one conquest card awarded per turn");
+
+    check(p1.getHand()->size() == cardsBefore + 1,
+      "Conquering player receives one card");
+
+    check(rewardDeck.size() == deckBefore - 1,
+      "One card removed from deck");
+
+    // Calling again without a new conquest must give no card.
+    int awardedAgain = Order::awardConquestCards(rewardDeck);
+
+    check(awardedAgain == 0,
+      "No duplicate card reward");
+
+    check(p1.getHand()->size() == cardsBefore + 1,
+      "Hand still contains only one reward card");
+    
+    std::cout << "\n=== Random Battle Test ===\n";
+
+    // Dorne belongs to p2.
+    // King's Landing belongs to p1.
+    // They are adjacent in our map.
+
+    dorne->setArmies(5);
+    kingsLanding->setArmies(3);
+
+    int sourceBeforeBattle = dorne->getArmies();
+
+    Advance randomBattle(
+        &p2, dorne, kingsLanding, 4 
+    );
+
+    testOrder(randomBattle, true, "Random battle");
+
+    check(dorne->getArmies() >= 0 &&
+      kingsLanding->getArmies() >= 0,
+      "Battle never produces negative armies");
+
+    check(dorne->getArmies() <= sourceBeforeBattle,
+      "Battle does not create extra source armies");
+
+    check(kingsLanding->getOwner() == &p1 ||
+      kingsLanding->getOwner() == &p2,
+      "Battle ownership remains valid");
 
     std::cout << "\n=== OrdersList: add, move, remove, copy ===\n";
     OrdersList list;

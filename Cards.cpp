@@ -14,6 +14,9 @@ Card& Card::operator=(const Card& other) {
 // Destroy the card.
 Card::~Card() {}
 
+// Return the card type.
+CardType Card::getType() const { return type; }
+
 // Print the card type.
 std::ostream& operator<<(std::ostream& out, const Card& card) {
     switch (card.type) {
@@ -35,7 +38,7 @@ bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
             break;
         }
     }
-    if (position == -1 || deck.count == 5) {
+    if (position == -1 || deck.count == 25) {
         return false;
     }
 
@@ -70,14 +73,16 @@ bool Card::play(Hand& hand, Deck& deck, OrdersList& orders) {
     return true;
 }
 
-// Create a deck with one card of each type.
+// Create 25 cards: five of each type.
 Deck::Deck() : cards{}, count(0) {
     try {
-        cards[count++] = new Card(CardType::Bomb);
-        cards[count++] = new Card(CardType::Reinforcement);
-        cards[count++] = new Card(CardType::Blockade);
-        cards[count++] = new Card(CardType::Airlift);
-        cards[count++] = new Card(CardType::Diplomacy);
+        for (int i = 0; i < 5; i++) {
+            cards[count++] = new Card(CardType::Bomb);
+            cards[count++] = new Card(CardType::Reinforcement);
+            cards[count++] = new Card(CardType::Blockade);
+            cards[count++] = new Card(CardType::Airlift);
+            cards[count++] = new Card(CardType::Diplomacy);
+        }
     } catch (...) {
         for (int i = 0; i < count; i++) { delete cards[i]; }
         throw;
@@ -101,7 +106,7 @@ Deck::Deck(const Deck& other) : cards{}, count(0) {
 Deck& Deck::operator=(const Deck& other) {
     if (this != &other) {
         Deck copy(other);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 25; i++) {
             Card* temporary = cards[i];
             cards[i] = copy.cards[i];
             copy.cards[i] = temporary;
@@ -150,7 +155,7 @@ Hand::Hand(const Hand& other) : cards{}, count(0) {
 Hand& Hand::operator=(const Hand& other) {
     if (this != &other) {
         Hand copy(other);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 25; i++) {
             Card* temporary = cards[i];
             cards[i] = copy.cards[i];
             copy.cards[i] = temporary;
@@ -181,7 +186,7 @@ std::ostream& operator<<(std::ostream& out, const Hand& object) {
 
 // Move a random card from the deck to the hand.
 bool Deck::draw(Hand& hand) {
-    if (count == 0 || hand.count == 5) { //count is from the Deck variable
+    if (count == 0 || hand.count == 25) { // Stop if the deck is empty or the hand is full.
         return false;
     }
     static std::mt19937 generator(std::random_device{}());

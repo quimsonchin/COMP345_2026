@@ -28,35 +28,42 @@ Members 1 and 2 both work in `Map.h` and `Map.cpp` (the assignment requires the 
 | 3. Orders list | `Orders.h`, `Orders.cpp` | `OrdersDriver.cpp` |
 | 4. Cards deck/hand | `Cards.h`, `Cards.cpp` | `CardsDriver.cpp` |
 | 5. Game Engine | `GameEngine.h`, `GameEngine.cpp` | `GameEngineDriver.cpp` |
+| A2 1. Command processor | `CommandProcessing.h`, `CommandProcessing.cpp` | `CommandProcessingDriver.cpp` |
 
 Map files used by the Map driver are in the `maps/` folder.
 
 ## How to build and run
 
-Requires `g++` with C++17 support (tested with MinGW-w64 on Windows).
-Each driver has its own `main()`, so compile each driver only with the files it needs. Run these from the project root.
+Requires CMake 3.20+ and a compiler with C++23 support (e.g. `g++`).
+Each driver has its own `main()`, so `CMakeLists.txt` builds one executable per driver, each with only the files it needs.
+
+Build all drivers from the project root:
 
 ```
-g++ -std=c++17 -Wall MapDriver.cpp Map.cpp -o MapDriver.exe
-.\MapDriver.exe
+cmake -S . -B build
+cmake --build build
 ```
 
-```
-g++ -std=c++17 -Wall OrdersDriver.cpp Orders.cpp Map.cpp -o OrdersDriver.exe
-```
+Run the drivers from the project root (the Map driver reads files from `maps/`, relative to the current folder):
 
 ```
-g++ -std=c++17 -Wall CardsDriver.cpp Cards.cpp Orders.cpp Map.cpp -o CardsDriver.exe
+./build/MapDriver
+./build/OrdersDriver
+./build/CardsDriver
+./build/PlayerDriver
+./build/GameEngineDriver
 ```
 
-```
-g++ -std=c++17 -Wall PlayerDriver.cpp Player.cpp Map.cpp Orders.cpp Cards.cpp -o PlayerDriver.exe
-.\PlayerDriver.exe
-```
+The command processor driver takes the command source on the command line, either the console or a saved command file:
 
 ```
-g++ -std=c++17 -Wall GameEngineDriver.cpp GameEngine.cpp -o GameEngineDriver.exe
-.\GameEngineDriver.exe
+./build/CommandProcessingDriver -console
+./build/CommandProcessingDriver -file commands/commands.txt
 ```
 
-Note: the exact list of `.cpp` files for each driver depends on how the parts depend on each other. If a build fails with "undefined reference" errors, add the missing part's `.cpp` file to the command.
+To build a single driver, use `cmake --build build --target MapDriver` (or any other driver name).
+
+On Windows, run the executables as `.\build\MapDriver.exe` (some generators put them in `build\Debug\` instead).
+
+If you add a new `.cpp` file or a new dependency between parts, add it to the matching `add_executable` line in `CMakeLists.txt`.
+
