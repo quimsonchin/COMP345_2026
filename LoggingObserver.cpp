@@ -1,5 +1,4 @@
 #include "LoggingObserver.h"
-#include <algorithm>
 #include <fstream>
 #include <stdexcept>
 
@@ -13,34 +12,37 @@ Observer::~Observer() {}
 std::ostream& operator<<(std::ostream& out, const Observer&) {
     return out << "Observer";
 }
-// Default constructor: create an empty observer list.
-Subject::Subject() : observers(new std::vector<Observer*>) {}
-// Copy constructor: start without attached observers.
-Subject::Subject(const Subject&) : observers(new std::vector<Observer*>) {}
-// Assignment operator: keep existing observer attachments.
+// Default constructor: no observer attached yet.
+Subject::Subject() : observer(nullptr) {}
+// Copy constructor: start without an observer.
+Subject::Subject(const Subject&) : observer(nullptr) {}
+// Assignment operator: keep the current observer.
 Subject& Subject::operator=(const Subject&) {
-    // Keep this object's subscriptions when its game data is assigned.
     return *this;
 }
-// Destructor: delete the list, not the observers.
-Subject::~Subject() { delete observers; }
-// Connect an observer once; the subject does not own it.
+// Destructor: the subject does not own the observer.
+Subject::~Subject() {}
+// Store the observer pointer, replacing any previous attachment.
 void Subject::Attach(Observer* observer) {
-    if (observer && std::find(observers->begin(), observers->end(), observer) == observers->end())
-        observers->push_back(observer);
+    this->observer = observer;
 }
-// Disconnect the observer without deleting it.
+// Disconnect only if this observer is attached.
 void Subject::Detach(Observer* observer) {
-    observers->erase(std::remove(observers->begin(), observers->end(), observer), observers->end());
+    if (this->observer == observer) {
+        this->observer = nullptr;
+    }
 }
-// Send the event to every attached observer.
+// Send the event if an observer is attached.
 void Subject::Notify(const ILoggable* object) const {
-    for (Observer* observer : *observers) {
+    if (observer != nullptr) {
         observer->Update(object);
     }
 }
 std::ostream& operator<<(std::ostream& out, const Subject& subject) {
-    return out << "Subject with " << subject.observers->size() << " observers";
+    if (subject.observer != nullptr) {
+        return out << "Subject with one observer";
+    }
+    return out << "Subject without an observer";
 }
 // Default constructor.
 LogObserver::LogObserver() {}

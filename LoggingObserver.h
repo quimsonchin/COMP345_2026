@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <string>
-#include <vector>
 
 // Interface for objects that can describe a logging event.
 class ILoggable {
@@ -21,7 +20,7 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const Observer& observer);
 };
 
-// Observers are borrowed; copies start with no attached observers.
+// Holds one borrowed observer; copies start without an observer.
 class Subject {
 public:
     Subject();
@@ -33,7 +32,7 @@ public:
     void Notify(const ILoggable* object) const;
     friend std::ostream& operator<<(std::ostream& out, const Subject& subject);
 private:
-    std::vector<Observer*>* observers;
+    Observer* observer;
 };
 
 // Appends each notification to gamelog.txt in the working directory.

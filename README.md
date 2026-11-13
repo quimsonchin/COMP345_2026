@@ -62,7 +62,8 @@ If you add a new `.cpp` file or a new dependency between parts, add it to the ma
 ## Assignment 2, Part 5: logging
 
 `LoggingObserver.h/.cpp` implements Subject, Observer, ILoggable and LogObserver.
-Attach a LogObserver to each object whose events should be recorded. The observer
+Each subject holds one observer pointer. Attach the shared LogObserver to each
+object whose events should be recorded. Attaching again replaces that pointer. The observer
 must remain alive while attached; use Detach before destroying it if necessary.
 Copies start without observers; assignment preserves existing subscriptions.
 

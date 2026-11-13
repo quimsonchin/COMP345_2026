@@ -2,6 +2,7 @@
 #define COMMAND_PROCESSING_H
 
 #include "LoggingObserver.h"
+#include <vector>
 
 // Minimal command support for Part 5; command validation belongs to Part 1.
 class Command : public Subject, public ILoggable {
