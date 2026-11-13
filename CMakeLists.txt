@@ -9,8 +9,25 @@ add_executable(MapDriver        MapDriver.cpp        Map.cpp)
 add_executable(OrdersDriver     OrdersDriver.cpp     Orders.cpp Map.cpp LoggingObserver.cpp)
 add_executable(CardsDriver      CardsDriver.cpp      Player.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
 add_executable(PlayerDriver     PlayerDriver.cpp     Player.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
-add_executable(GameEngineDriver GameEngineDriver.cpp GameEngine.cpp LoggingObserver.cpp)
 
+set(GAME_ENGINE_SOURCES
+    GameEngine.cpp
+    Map.cpp
+    Player.cpp
+    Orders.cpp
+    Cards.cpp
+    LoggingObserver.cpp
+)
+
+add_executable(GameEngineDriver
+    GameEngineDriver.cpp ${GAME_ENGINE_SOURCES})
+
+add_executable(GameEngineStartupDriver
+    GameEngineStartupDriver.cpp ${GAME_ENGINE_SOURCES})
+
+add_executable(WarzoneGame
+    WarzoneGame.cpp ${GAME_ENGINE_SOURCES})
+    
 add_executable(LoggingObserverDriver LoggingObserverDriver.cpp LoggingObserver.cpp CommandProcessing.cpp GameEngine.cpp Orders.cpp Map.cpp Player.cpp Cards.cpp)
 
 add_executable(CommandProcessingDriver CommandProcessingDriver.cpp CommandProcessing.cpp LoggingObserver.cpp)
