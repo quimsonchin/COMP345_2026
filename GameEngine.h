@@ -9,6 +9,7 @@
 
 class Map;
 class Player;
+class Deck;
 
 // Exact A2 states ("End" represents quitting the program).
 enum class GameState
@@ -45,14 +46,9 @@ public:
     // Kaila supplies the map and the list of Player objects after startup.
     // They must outlive the GameEngine and its game loop.
     void setMap(Map *map);
+    void setDeck(Deck *deck);
     void setPlayers(const std::vector<Player *> &players);
     const std::vector<Player *> &getActivePlayers() const;
-
-    // TEMPORARY A1->A2 integration seam. True: issued one order;
-    // false: finished issuing orders for this turn.
-    // Replace with direct Player::issueOrder() calls once Phuc finalizes
-    // an API that reports when a player is done.
-    void setIssueOrderCallback(bool (*issueOneOrder)(Player &));
 
     // A2, Part 3b
     void reinforcementPhase();
@@ -69,8 +65,8 @@ public:
 private:
     GameState currentState;
     Map *map;                             // borrowed, do not delete
+    Deck *deck;                           // borrowed, do not delete
     std::vector<Player *> *activePlayers; // owned vector; borrowed elements
-    bool (*issueOneOrder)(Player &);      // non-owning function pointer
     unsigned int turnNumber;
 
     int countOwnedTerritories(const Player *player) const;

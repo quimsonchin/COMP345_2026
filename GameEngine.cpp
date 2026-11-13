@@ -1,4 +1,5 @@
 #include "GameEngine.h"
+#include "Cards.h"
 #include "Map.h"
 #include "Orders.h"
 #include "Player.h"
@@ -9,15 +10,14 @@
 #include <utility>
 
 GameEngine::GameEngine()
-    : currentState(GameState::Start), map(nullptr),
-      activePlayers(new std::vector<Player *>()), issueOneOrder(nullptr),
-      turnNumber(0) {}
+    : currentState(GameState::Start), map(nullptr), deck(nullptr),
+      activePlayers(new std::vector<Player *>()), turnNumber(0) {}
 
 // Map and Player objects are borrowed, but the vector is deep-copied.
 GameEngine::GameEngine(const GameEngine &other)
     : Subject(other), currentState(other.currentState), map(other.map),
-      activePlayers(new std::vector<Player *>(*other.activePlayers)),
-      issueOneOrder(other.issueOneOrder), turnNumber(other.turnNumber) {}
+      deck(other.deck), activePlayers(new std::vector<Player *>(*other.activePlayers)),
+      turnNumber(other.turnNumber) {}
 
 GameEngine &GameEngine::operator=(const GameEngine &other)
 {
@@ -29,7 +29,7 @@ GameEngine &GameEngine::operator=(const GameEngine &other)
         activePlayers = replacement;
         currentState = other.currentState;
         map = other.map;
-        issueOneOrder = other.issueOneOrder;
+        deck = other.deck;
         turnNumber = other.turnNumber;
     }
     return *this;
@@ -142,7 +142,11 @@ bool GameEngine::transition(const std::string &event)
         // Game assets must also be reset by startup integration before reuse.
         activePlayers->clear();
         map = nullptr;
+        deck = nullptr;
         turnNumber = 0;
+        // Clear shared per-turn order bookkeeping for a new game.
+        Order::clearNegotiations();
+        Order::clearConquests();
     }
     if (stateChanged)
     {
@@ -217,6 +221,8 @@ std::string GameEngine::stringToLog() const
 
 void GameEngine::setMap(Map *selectedMap) { map = selectedMap; }
 
+void GameEngine::setDeck(Deck *selectedDeck) { deck = selectedDeck; }
+
 void GameEngine::setPlayers(const std::vector<Player *> &players)
 {
     // Preserve the startup/randomized play order; do not own Player objects.
@@ -226,11 +232,6 @@ void GameEngine::setPlayers(const std::vector<Player *> &players)
 const std::vector<Player *> &GameEngine::getActivePlayers() const
 {
     return *activePlayers;
-}
-
-void GameEngine::setIssueOrderCallback(bool (*callback)(Player &))
-{
-    issueOneOrder = callback;
 }
 
 unsigned int GameEngine::getTurnNumber() const { return turnNumber; }
@@ -297,7 +298,7 @@ void GameEngine::reinforcementPhase()
         if (!pool)
             throw std::logic_error("Player reinforcement pool is null");
         *pool += total;
-        std::cout << "Turn " << turnNumber << ": player " << player
+        std::cout << "Turn " << turnNumber << ": player " << player->getName()
                   << " receives " << total << " armies (" << territoryCount
                   << " territories, continent bonus " << (total - base)
                   << ")\n";
@@ -310,13 +311,22 @@ void GameEngine::issueOrdersPhase()
 {
     if (currentState != GameState::AssignReinforcement)
         throw std::logic_error("issueOrdersPhase: wrong game state");
-    if (!issueOneOrder)
-        throw std::logic_error("issueOrdersPhase: waiting for Phuc's issueOrder API");
+    if (!deck)
+        throw std::logic_error("issueOrdersPhase: deck not initialized");
+
+    // Reset order-issuing and per-turn Player bookkeeping before the first pass.
+    for (Player *player : *activePlayers)
+    {
+        if (player)
+            player->resetTurnState();
+    }
 
     transition("issueorder");
     std::vector<bool> finished(activePlayers->size(), false);
     std::size_t remaining = activePlayers->size();
 
+    // One Player::issueOrder() call per active player per pass.  The Player
+    // decides which order to create; false means it is done for this turn.
     while (remaining != 0)
     {
         for (std::size_t i = 0; i < activePlayers->size(); ++i)
@@ -325,7 +335,7 @@ void GameEngine::issueOrdersPhase()
                 continue;
             Player *player = (*activePlayers)[i];
             if (!player || countOwnedTerritories(player) == 0 ||
-                !issueOneOrder(*player))
+                !player->issueOrder(deck))
             {
                 finished[i] = true;
                 --remaining;
@@ -388,9 +398,16 @@ void GameEngine::executeOrdersPhase()
         } while (executedOne);
     }
 
-    // TODO integration: award max one card to each conqueror this turn;
-    // clear per-turn diplomacy effects after all orders; coordinate with
-    // Mengqi/Phuc/Alexandre to expose these APIs.
+    // Orders records a conquering player once, so each may draw at most
+    // one card this turn. awardConquestCards() also clears that record.
+    if (deck)
+        Order::awardConquestCards(*deck);
+    else
+        Order::clearConquests();
+
+    // Diplomacy expires at the end of a turn.  Each Player clears its own
+    // per-turn negotiated-player list in resetTurnState() next issue phase.
+    Order::clearNegotiations();
     removeEliminatedPlayers();
     if (checkWinner())
         transition("win");
@@ -435,13 +452,12 @@ Player *GameEngine::checkWinner() const
                : nullptr;
 }
 
-// Do not run until orders actually change territories, otherwise an A1
-// integration with placeholder Order::execute() can loop indefinitely.
+// Run with the A2 Orders implementation (which enacts territory changes).
 void GameEngine::mainGameLoop()
 {
     if (currentState != GameState::AssignReinforcement)
         throw std::logic_error("mainGameLoop: gamestart has not completed");
-    if (!map || activePlayers->empty() || !issueOneOrder)
+    if (!map || !deck || activePlayers->empty())
         throw std::logic_error("mainGameLoop: missing game dependencies");
 
     while (currentState != GameState::Win && currentState != GameState::End)
@@ -451,7 +467,7 @@ void GameEngine::mainGameLoop()
         executeOrdersPhase();
     }
     if (currentState == GameState::Win)
-        std::cout << "Winner: " << checkWinner() << '\n';
+        std::cout << "Winner: " << checkWinner()->getName() << '\n';
 }
 
 std::ostream &operator<<(std::ostream &out, const GameEngine &engine)
