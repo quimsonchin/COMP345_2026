@@ -18,6 +18,7 @@
 /OrdersDriver
 /CardsDriver
 /GameEngineDriver
+/CommandProcessingDriver
 
 # Build artifacts
 *.o
