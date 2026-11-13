@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall)
 
 add_executable(MapDriver        MapDriver.cpp        Map.cpp)
-add_executable(OrdersDriver     OrdersDriver.cpp     Orders.cpp Map.cpp LoggingObserver.cpp)
+add_executable(OrdersDriver     OrdersDriver.cpp     Orders.cpp Map.cpp LoggingObserver.cpp Player.cpp Cards.cpp)
 add_executable(CardsDriver      CardsDriver.cpp      Player.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
 add_executable(PlayerDriver     PlayerDriver.cpp     Player.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
 
