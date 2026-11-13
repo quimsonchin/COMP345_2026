@@ -28,6 +28,7 @@ Members 1 and 2 both work in `Map.h` and `Map.cpp` (the assignment requires the 
 | 3. Orders list | `Orders.h`, `Orders.cpp` | `OrdersDriver.cpp` |
 | 4. Cards deck/hand | `Cards.h`, `Cards.cpp` | `CardsDriver.cpp` |
 | 5. Game Engine | `GameEngine.h`, `GameEngine.cpp` | `GameEngineDriver.cpp` |
+| A2 1. Command processor | `CommandProcessing.h`, `CommandProcessing.cpp` | `CommandProcessingDriver.cpp` |
 
 Map files used by the Map driver are in the `maps/` folder.
 
@@ -53,6 +54,13 @@ Run the drivers from the project root (the Map driver reads files from `maps/`, 
 ./build/GameEngineDriver
 ```
 
+The command processor driver takes the command source on the command line, either the console or a saved command file:
+
+```
+./build/CommandProcessingDriver -console
+./build/CommandProcessingDriver -file commands/commands.txt
+```
+
 To build a single driver, use `cmake --build build --target MapDriver` (or any other driver name).
 
 On Windows, run the executables as `.\build\MapDriver.exe` (some generators put them in `build\Debug\` instead).
@@ -74,8 +82,8 @@ cmake --build build --target LoggingObserverDriver
 ./build/LoggingObserverDriver
 ```
 
-Enter `loadmap` when prompted. The driver appends command, command effect,
+Enter `loadmap world.map` when prompted. The driver appends command, command effect,
 state change, order addition and order execution entries to `gamelog.txt` in
 the current folder. One deploy order demonstrates addition and execution.
-The minimal CommandProcessing classes support this logging demonstration;
-Part 1 validation and file adapter, and Parts 2-4, are left to their owners.
+CommandProcessing includes Part 1 validation and the file adapter. Both console
+and file commands use the same logging hooks. Parts 2-4 provide game behavior.

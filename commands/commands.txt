@@ -1,0 +1,19 @@
+validatemap
+loadmap
+loadmap maps/westeros_essos.map
+loadmap maps/two_continents.map
+gamestart
+validatemap
+addplayer
+addplayer Alice
+addplayer Bob
+validatemap
+foo
+gamestart
+replay
+loadmap maps/westeros_essos.map
+validatemap
+addplayer Carol
+addplayer Dave
+gamestart
+quit

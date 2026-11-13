@@ -172,7 +172,7 @@ std::ostream& operator<<(std::ostream& out, const GameEngine& engine) {
     return out;
 }
 
-// Describe the state reached by transition().
+// Log the current state.
 std::string GameEngine::stringToLog() const {
     return "Game state: " + getStateName();
 }

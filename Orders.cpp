@@ -256,11 +256,11 @@ std::ostream& operator<<(std::ostream& out, const OrdersList& list) {
     return out;
 }
 
-// Log the stored result of any concrete order execution.
+// Log the order effect.
 std::string Order::stringToLog() const {
     return "Order executed: " + getDescription() + " | " + effect;
 }
-// addOrder always appends, so the last item is the new order.
+// Log the last order added.
 std::string OrdersList::stringToLog() const {
     return orders.empty() ? "OrdersList is empty" : "Order added: " + orders.back()->getDescription();
 }

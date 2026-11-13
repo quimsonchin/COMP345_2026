@@ -12,3 +12,5 @@ add_executable(PlayerDriver     PlayerDriver.cpp     Player.cpp Cards.cpp Orders
 add_executable(GameEngineDriver GameEngineDriver.cpp GameEngine.cpp LoggingObserver.cpp)
 
 add_executable(LoggingObserverDriver LoggingObserverDriver.cpp LoggingObserver.cpp CommandProcessing.cpp GameEngine.cpp Orders.cpp Map.cpp Player.cpp Cards.cpp)
+
+add_executable(CommandProcessingDriver CommandProcessingDriver.cpp CommandProcessing.cpp LoggingObserver.cpp)

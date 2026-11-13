@@ -4,26 +4,28 @@
 #include "Orders.h"
 #include "Map.h"
 #include "Player.h"
-// Demonstrate console commands, effects, order addition/execution and state changes.
+// Part 5 driver.
 int main() {
-    LogObserver logger; // One logger shared by all attached subjects.
+    LogObserver logger; // Shared logger.
     GameEngine engine;
     CommandProcessor processor;
     engine.Attach(&logger);
     processor.Attach(&logger);
-    std::cout << "Enter an engine command (for example loadmap): ";
+    std::cout << "Enter an engine command (for example loadmap world.map): ";
     Command* command = processor.getCommand();
     if (!command) return 1;
-    command->Attach(&logger);
-    // Ask the engine to process the text and report success or failure.
-    bool accepted = engine.transition(command->getCommand());
+    // Process the command.
+    bool accepted = processor.validate(command, engine.getState());
+    if (accepted) {
+        accepted = engine.transition(command->getName());
+    }
     if (accepted) {
         command->saveEffect("Accepted: " + engine.getStateName());
-    } else {
+    } else if (command->getEffect().empty()) {
         command->saveEffect("Rejected in " + engine.getStateName());
     }
 
-    // Add and execute one order through a real player's list.
+    // Add and execute a deploy order.
     Player player;
     Territory territory("Home");
     territory.setOwner(&player);

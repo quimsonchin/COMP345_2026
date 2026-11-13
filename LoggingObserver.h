@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-// Interface for objects that can describe a logging event.
+// Provides the message to log.
 class ILoggable {
 public:
     virtual ~ILoggable();
@@ -12,7 +12,7 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const ILoggable& object);
 };
 
-// Interface for observers receiving logging events.
+// Receives notifications.
 class Observer {
 public:
     virtual ~Observer();
@@ -20,7 +20,7 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const Observer& observer);
 };
 
-// Holds one borrowed observer; copies start without an observer.
+// Stores one observer pointer without owning it.
 class Subject {
 public:
     Subject();
@@ -31,11 +31,13 @@ public:
     void Detach(Observer* observer);
     void Notify(const ILoggable* object) const;
     friend std::ostream& operator<<(std::ostream& out, const Subject& subject);
+protected:
+    Observer* getObserver() const;
 private:
     Observer* observer;
 };
 
-// Appends each notification to gamelog.txt in the working directory.
+// Writes messages to gamelog.txt.
 class LogObserver : public Observer {
 public:
     LogObserver();

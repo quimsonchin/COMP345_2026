@@ -12,27 +12,27 @@ Observer::~Observer() {}
 std::ostream& operator<<(std::ostream& out, const Observer&) {
     return out << "Observer";
 }
-// Default constructor: no observer attached yet.
+// Default constructor.
 Subject::Subject() : observer(nullptr) {}
-// Copy constructor: start without an observer.
+// Copy constructor: no observer attached.
 Subject::Subject(const Subject&) : observer(nullptr) {}
-// Assignment operator: keep the current observer.
+// Assignment operator: keep the attached observer.
 Subject& Subject::operator=(const Subject&) {
     return *this;
 }
-// Destructor: the subject does not own the observer.
+// Destructor: observer is not owned here.
 Subject::~Subject() {}
-// Store the observer pointer, replacing any previous attachment.
+// Attach an observer.
 void Subject::Attach(Observer* observer) {
     this->observer = observer;
 }
-// Disconnect only if this observer is attached.
+// Detach the matching observer.
 void Subject::Detach(Observer* observer) {
     if (this->observer == observer) {
         this->observer = nullptr;
     }
 }
-// Send the event if an observer is attached.
+// Notify the observer.
 void Subject::Notify(const ILoggable* object) const {
     if (observer != nullptr) {
         observer->Update(object);
@@ -54,11 +54,16 @@ LogObserver& LogObserver::operator=(const LogObserver&) { return *this; }
 LogObserver::~LogObserver() {}
 void LogObserver::Update(const ILoggable* object) {
     if (!object) return;
-    // Append the message, keeping earlier log entries.
+    // Append to the log file.
     std::ofstream log("gamelog.txt", std::ios::app);
     if (!log) throw std::runtime_error("Cannot open gamelog.txt");
     log << object->stringToLog() << '\n';
 }
 std::ostream& operator<<(std::ostream& out, const LogObserver&) {
     return out << "LogObserver: gamelog.txt";
+}
+
+// Return the attached observer.
+Observer* Subject::getObserver() const {
+    return observer;
 }
