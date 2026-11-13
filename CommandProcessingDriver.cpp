@@ -45,6 +45,8 @@ void executeCommand(Command* command, GameState& state) {
 // Runs commands until quit or the input runs out. Works the same for the
 // console and the file adapter.
 void runCommands(CommandProcessor& processor) {
+    LogObserver logger;
+    processor.Attach(&logger);
     GameState state = GameState::Start;
 
     while (state != GameState::End) {
@@ -70,6 +72,10 @@ void runCommands(CommandProcessor& processor) {
     }
 
     std::cout << '\n' << processor << '\n';
+    for (Command* command : processor.getCommands()) {
+        command->Detach(&logger);
+    }
+    processor.Detach(&logger);
 }
 
 // Shows that copies get their own commands.

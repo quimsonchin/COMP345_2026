@@ -28,6 +28,9 @@ public:
     // Destroy the card.
     ~Card();
 
+    // Return the card type.
+    CardType getType() const;
+
     // Play the card and return it to the deck.
     bool play(Hand& hand, Deck& deck, OrdersList& orders);
 
@@ -38,7 +41,7 @@ public:
 // Stores the cards available to draw.
 class Deck {
 private:
-    Card* cards[5];
+    Card* cards[25]; // Space for all 25 cards.
     int count;
 
 public:
@@ -70,7 +73,7 @@ public:
 // Stores the cards held by a player.
 class Hand {
 private:
-    Card* cards[5];
+    Card* cards[25]; // Space for all 25 cards.
     int count;
 
 public:

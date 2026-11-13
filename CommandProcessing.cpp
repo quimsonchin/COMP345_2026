@@ -43,7 +43,7 @@ Command::Command(const std::string &command)
     : command(trim(command)), effect("") {}
 
 Command::Command(const Command &other)
-    : command(other.command), effect(other.effect) {}
+    : Subject(other), command(other.command), effect(other.effect) {}
 
 Command &Command::operator=(const Command &other) {
   if (this != &other) {
@@ -55,7 +55,15 @@ Command &Command::operator=(const Command &other) {
 
 Command::~Command() {}
 
-void Command::saveEffect(const std::string &effect) { this->effect = effect; }
+void Command::saveEffect(const std::string &effect) {
+  this->effect = effect;
+  Notify(this);
+}
+
+// Log the command effect.
+std::string Command::stringToLog() const {
+  return "Command effect: " + command + " -> " + effect;
+}
 
 std::string Command::getCommand() const { return command; }
 
@@ -87,7 +95,7 @@ std::ostream &operator<<(std::ostream &out, const Command &command) {
 
 CommandProcessor::CommandProcessor() : commands() {}
 
-CommandProcessor::CommandProcessor(const CommandProcessor &other) : commands() {
+CommandProcessor::CommandProcessor(const CommandProcessor &other) : Subject(other), commands() {
   copyCommands(other.commands);
 }
 
@@ -188,7 +196,14 @@ std::string CommandProcessor::readCommand() {
 // Invalid commands are kept too, so their effect can be shown later.
 Command *CommandProcessor::saveCommand(const std::string &commandText) {
   Command *command = new Command(commandText);
-  commands.push_back(command);
+  try {
+    commands.push_back(command);
+  } catch (...) {
+    delete command;
+    throw;
+  }
+  command->Attach(getObserver());
+  Notify(this);
   return command;
 }
 
@@ -277,4 +292,10 @@ std::ostream &operator<<(std::ostream &out,
 
 std::string FileCommandProcessorAdapter::readCommand() {
   return flr->readLineFromFile();
+}
+
+// Log the last saved command.
+std::string CommandProcessor::stringToLog() const {
+  if (commands.empty()) return "No commands";
+  return "Command saved: " + commands.back()->getCommand();
 }

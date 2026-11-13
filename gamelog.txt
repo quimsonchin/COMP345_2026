@@ -1,0 +1,7 @@
+Command saved: loadmap
+Game state: map loaded
+Command effect: loadmap -> Accepted: map loaded
+Order added: Blockade null territory
+Order executed: Blockade null territory | Rejected: invalid blockade order
+Order added: Deploy 3 armies to Home
+Order executed: Deploy 3 armies to Home | Accepted: deploy game action deferred (A1)

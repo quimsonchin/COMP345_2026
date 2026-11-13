@@ -5,7 +5,7 @@ GameEngine::GameEngine() : currentState(GameState::Start) {}
 
 // The enum has value semantics, so copying it is sufficient.
 GameEngine::GameEngine(const GameEngine& other)
-    : currentState(other.currentState) {}
+    : Subject(other), currentState(other.currentState) {}
 
 // Copy assignment safely handles an object assigned to itself.
 GameEngine& GameEngine::operator=(const GameEngine& other) {
@@ -26,6 +26,7 @@ bool GameEngine::transition(const std::string& command) {
         case GameState::Start:
             if (command == "loadmap") {
                 currentState = GameState::MapLoaded;
+                Notify(this);
                 return true;
             }
             break;
@@ -36,6 +37,7 @@ bool GameEngine::transition(const std::string& command) {
             }
             if (command == "validatemap") {
                 currentState = GameState::MapValidated;
+                Notify(this);
                 return true;
             }
             break;
@@ -43,6 +45,7 @@ bool GameEngine::transition(const std::string& command) {
         case GameState::MapValidated:
             if (command == "addplayer") {
                 currentState = GameState::PlayersAdded;
+                Notify(this);
                 return true;
             }
             break;
@@ -53,6 +56,7 @@ bool GameEngine::transition(const std::string& command) {
             }
             if (command == "assigncountries") {
                 currentState = GameState::AssignReinforcement;
+                Notify(this);
                 return true;
             }
             break;
@@ -60,6 +64,7 @@ bool GameEngine::transition(const std::string& command) {
         case GameState::AssignReinforcement:
             if (command == "issueorder") {
                 currentState = GameState::IssueOrders;
+                Notify(this);
                 return true;
             }
             break;
@@ -70,6 +75,7 @@ bool GameEngine::transition(const std::string& command) {
             }
             if (command == "endissueorders") {
                 currentState = GameState::ExecuteOrders;
+                Notify(this);
                 return true;
             }
             break;
@@ -80,10 +86,12 @@ bool GameEngine::transition(const std::string& command) {
             }
             if (command == "endexecorders") {
                 currentState = GameState::AssignReinforcement;
+                Notify(this);
                 return true;  // Start the next turn.
             }
             if (command == "win") {
                 currentState = GameState::Win;
+                Notify(this);
                 return true;
             }
             break;
@@ -91,10 +99,12 @@ bool GameEngine::transition(const std::string& command) {
         case GameState::Win:
             if (command == "play") {
                 currentState = GameState::Start;
+                Notify(this);
                 return true;  // Start a new game.
             }
             if (command == "end") {
                 currentState = GameState::End;
+                Notify(this);
                 return true;
             }
             break;
@@ -160,4 +170,9 @@ bool GameEngine::isFinished() const {
 std::ostream& operator<<(std::ostream& out, const GameEngine& engine) {
     out << "GameEngine state: " << engine.getStateName();
     return out;
+}
+
+// Log the current state.
+std::string GameEngine::stringToLog() const {
+    return "Game state: " + getStateName();
 }

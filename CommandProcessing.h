@@ -6,10 +6,13 @@
 #include <vector>
 
 #include "GameEngine.h"
+#include "LoggingObserver.h"
 
 // A command typed by the user or read from a file, plus its effect.
-class Command {
+class Command : public Subject, public ILoggable {
 public:
+  // Format the log entry.
+  std::string stringToLog() const override;
   // Effect starts empty until the command runs.
   Command(const std::string &command);
 
@@ -47,8 +50,10 @@ private:
 
 // Reads commands from the console and keeps every one it reads.
 // The GameEngine and Player get their commands through getCommand().
-class CommandProcessor {
+class CommandProcessor : public Subject, public ILoggable {
 public:
+  // Format the log entry.
+  std::string stringToLog() const override;
   // Starts with no commands.
   CommandProcessor();
 

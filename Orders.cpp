@@ -37,7 +37,7 @@ std::string territoryName(const Territory* territory) {
 }
 
 Order::Order() : effect(""), executed(false) {}
-Order::Order(const Order& other) : effect(other.effect), executed(other.executed) {}
+Order::Order(const Order& other) : Subject(other), effect(other.effect), executed(other.executed) {}
 Order& Order::operator=(const Order& other) {
     if (this != &other) { effect = other.effect; executed = other.executed; }
     return *this;
@@ -117,6 +117,7 @@ void Deploy::execute() {
     effect = "Rejected: invalid deploy order";
 
     if (!validate()) {
+        Notify(this);
         return;
     }
 
@@ -129,6 +130,7 @@ void Deploy::execute() {
     executed = true;
     effect = "Deployed " + std::to_string(armies)
            + " armies to " + target->getName();
+    Notify(this);
 }
 
 Order* Deploy::clone() const { return new Deploy(*this); }
@@ -181,6 +183,7 @@ void Advance::execute() {
 
     // Validate before execution.
     if (!validate()) {
+        Notify(this);
         return;
     }
 
@@ -193,6 +196,7 @@ void Advance::execute() {
         effect = "Moved " + std::to_string(armies)
                + " armies from " + source->getName()
                + " to " + target->getName();
+        Notify(this);
         return;
     }
 
@@ -278,6 +282,7 @@ void Advance::execute() {
     }
 
     executed = true;
+    Notify(this);
 }
 
 Order* Advance::clone() const { return new Advance(*this); }
@@ -317,6 +322,7 @@ void Bomb::execute() {
     effect = "Rejected: invalid bomb order";
 
     if (!validate()) {
+        Notify(this);
         return;
     }
 
@@ -331,6 +337,7 @@ void Bomb::execute() {
            + ": armies reduced from "
            + std::to_string(before)
            + " to " + std::to_string(after);
+    Notify(this);
 }
 
 Order* Bomb::clone() const { return new Bomb(*this); }
@@ -353,6 +360,7 @@ void Blockade::execute() {
     effect = "Rejected: invalid blockade order";
 
     if (!validate()) {
+        Notify(this);
         return;
     }
 
@@ -374,6 +382,7 @@ void Blockade::execute() {
     effect = "Blockade executed on " + target->getName()
            + ". Armies doubled and ownership "
              "transferred to Neutral player.";
+    Notify(this);
 }
 
 Order* Blockade::clone() const { return new Blockade(*this); }
@@ -408,6 +417,7 @@ void Airlift::execute() {
     effect = "Rejected: invalid airlift order";
 
     if (!validate()) {
+        Notify(this);
         return;
     }
 
@@ -421,6 +431,7 @@ void Airlift::execute() {
     effect = "Airlifted " + std::to_string(armies)
            + " armies from " + source->getName()
            + " to " + target->getName();
+    Notify(this);
 }
 
 Order* Airlift::clone() const { return new Airlift(*this); }
@@ -448,6 +459,7 @@ void Negotiate::execute() {
     effect = "Rejected: invalid negotiate order";
 
     if (!validate()) {
+        Notify(this);
         return;
     }
 
@@ -457,6 +469,7 @@ void Negotiate::execute() {
     effect = "Negotiation successful. "
              "Both players cannot attack each other "
              "for the remainder of this turn.";
+    Notify(this);
 }
 
 Order* Negotiate::clone() const { return new Negotiate(*this); }
@@ -491,6 +504,7 @@ void OrdersList::addOrder(Order* order) {
         throw std::invalid_argument("The same Order* is already in this list");
     // Take ownership only after successfully adding the pointer.
     orders.push_back(order);
+    Notify(this);
 }
 bool OrdersList::move(int fromIndex, int toIndex) {
     if (fromIndex < 0 || toIndex < 0 || fromIndex >= size() || toIndex >= size()) return false;
@@ -519,4 +533,13 @@ std::ostream& operator<<(std::ostream& out, const OrdersList& list) {
     for (std::size_t i = 0; i < list.orders.size(); ++i)
         out << i << ": " << *list.orders[i] << '\n';
     return out;
+}
+
+// Log the order effect.
+std::string Order::stringToLog() const {
+    return "Order executed: " + getDescription() + " | " + effect;
+}
+// Log the last order added.
+std::string OrdersList::stringToLog() const {
+    return orders.empty() ? "OrdersList is empty" : "Order added: " + orders.back()->getDescription();
 }
