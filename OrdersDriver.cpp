@@ -106,6 +106,10 @@ int main() {
     testOrder(negotiate, true, "Negotiate valid");
     check(Order::areNegotiating(&p1, &p2),
       "Diplomacy registered");
+    check(p1.hasNegotiatedWith(&p2),
+      "Player 1 knows negotiation");
+    check(p2.hasNegotiatedWith(&p1),
+      "Player 2 knows negotiation");
 
     Advance blockedAttack(
     &p1, winterfell, kingsLanding, 1
@@ -168,10 +172,10 @@ int main() {
 
     check(kingsLanding->getOwner() == &p1,
       "Conquest transfers territory ownership");
-
+    check(p1.hasConqueredThisTurn(),
+      "Player conquest flag updated");
     check(kingsLanding->getArmies() == 3,
       "Surviving attackers occupy conquered territory");
-
     check(winterfell->getArmies() == winterfellBefore - 3,
       "Conquest removes armies from source");
 

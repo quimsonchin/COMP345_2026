@@ -262,6 +262,7 @@ void Advance::execute() {
 
         target->setArmies(survivingAttackers);
         Order::recordConquest(player);
+        player->setConqueredThisTurn(true);
         effect = "Conquered " + target->getName()
                + " with "
                + std::to_string(survivingAttackers)
@@ -464,7 +465,8 @@ void Negotiate::execute() {
     }
 
     Order::registerNegotiation(player, targetPlayer);
-
+    player->addNegotiatedPlayer(targetPlayer);
+    targetPlayer->addNegotiatedPlayer(player);
     executed = true;
     effect = "Negotiation successful. "
              "Both players cannot attack each other "
@@ -479,7 +481,7 @@ std::ostream& operator<<(std::ostream& out, const Negotiate& order) {
 }
 
 OrdersList::OrdersList() {}
-OrdersList::OrdersList(const OrdersList& other) {
+OrdersList::OrdersList(const OrdersList& other) : Subject(other) {
     try {
         orders.reserve(other.orders.size());
         for (Order* order : other.orders) orders.push_back(order->clone());
