@@ -28,6 +28,7 @@ Members 1 and 2 both work in `Map.h` and `Map.cpp` (the assignment requires the 
 | 3. Orders list | `Orders.h`, `Orders.cpp` | `OrdersDriver.cpp` |
 | 4. Cards deck/hand | `Cards.h`, `Cards.cpp` | `CardsDriver.cpp` |
 | 5. Game Engine | `GameEngine.h`, `GameEngine.cpp` | `GameEngineDriver.cpp` |
+| A2 1. Command processor | `CommandProcessing.h`, `CommandProcessing.cpp` | `CommandProcessingDriver.cpp` |
 
 Map files used by the Map driver are in the `maps/` folder.
 
@@ -51,6 +52,13 @@ Run the drivers from the project root (the Map driver reads files from `maps/`, 
 ./build/CardsDriver
 ./build/PlayerDriver
 ./build/GameEngineDriver
+```
+
+The command processor driver takes the command source on the command line, either the console or a saved command file:
+
+```
+./build/CommandProcessingDriver -console
+./build/CommandProcessingDriver -file commands/commands.txt
 ```
 
 To build a single driver, use `cmake --build build --target MapDriver` (or any other driver name).
