@@ -55,6 +55,10 @@ public:
     void issueOrdersPhase();
     void executeOrdersPhase();
     void mainGameLoop();
+
+    // A2 Part 2: reads loadmap/validatemap/addplayer/gamestart.
+    void startupPhase();
+    void startupPhase(std::istream &input, std::ostream &output);
     void removeEliminatedPlayers();
     Player *checkWinner() const;
     unsigned int getTurnNumber() const;
@@ -68,6 +72,20 @@ private:
     Deck *deck;                           // borrowed, do not delete
     std::vector<Player *> *activePlayers; // owned vector; borrowed elements
     unsigned int turnNumber;
+
+    // The engine borrows objects supplied with setMap/setDeck/setPlayers.
+    // It owns only the objects it creates during startupPhase().
+    Map *ownedMap;
+    Deck *ownedDeck;
+    std::vector<Player *> *ownedPlayers;
+
+    void releaseStartupResources();
+    std::string handleStartupCommand(const std::string &line);
+    std::string loadMapCommand(const std::string &fileName);
+    std::string validateMapCommand();
+    std::string addPlayerCommand(const std::string &playerName);
+    std::string gameStartCommand();
+    void listMapFiles(std::ostream &output) const;
 
     int countOwnedTerritories(const Player *player) const;
     int continentBonus(const Player *player) const;
