@@ -41,7 +41,7 @@ public:
 // Stores the cards available to draw.
 class Deck {
 private:
-    Card* cards[5];
+    Card* cards[25]; // Space for all 25 cards.
     int count;
 
 public:
@@ -73,7 +73,7 @@ public:
 // Stores the cards held by a player.
 class Hand {
 private:
-    Card* cards[5];
+    Card* cards[25]; // Space for all 25 cards.
     int count;
 
 public:

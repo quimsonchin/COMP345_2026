@@ -15,7 +15,7 @@ static_assert(std::is_base_of<Subject, GameEngine>::value && std::is_base_of<ILo
 
 // Demonstrate console commands, effects, order addition/execution and state changes.
 int main() {
-    LogObserver logger;
+    LogObserver logger; // One logger shared by all attached subjects.
     GameEngine engine;
     CommandProcessor processor;
     engine.Attach(&logger);
@@ -24,6 +24,7 @@ int main() {
     Command* command = processor.getCommand();
     if (!command) return 1;
     command->Attach(&logger);
+    // Ask the engine to process the text and report success or failure.
     bool accepted = engine.transition(command->getCommand());
     command->saveEffect(accepted ? "Accepted: " + engine.getStateName() : "Rejected in " + engine.getStateName());
 
