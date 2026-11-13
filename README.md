@@ -75,6 +75,6 @@ cmake --build build --target LoggingObserverDriver
 
 Enter `loadmap` when prompted. The driver appends command, command effect,
 state change, order addition and order execution entries to `gamelog.txt` in
-the current folder. Both accepted and rejected order effects are demonstrated.
+the current folder. One deploy order demonstrates addition and execution.
 The minimal CommandProcessing classes support this logging demonstration;
 Part 1 validation and file adapter, and Parts 2-4, are left to their owners.

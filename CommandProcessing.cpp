@@ -1,6 +1,4 @@
 #include "CommandProcessing.h"
-#include <memory>
-#include <utility>
 
 // Constructor: store the command text.
 Command::Command(const std::string& value)
@@ -10,11 +8,17 @@ Command::Command(const Command& other)
     : Subject(other), text(new std::string(*other.text)), effect(new std::string(*other.effect)) {}
 // Assignment operator: copy the text and effect.
 Command& Command::operator=(const Command& other) {
-    if (this != &other) { *text = *other.text; *effect = *other.effect; }
+    if (this != &other) {
+        *text = *other.text;
+        *effect = *other.effect;
+    }
     return *this;
 }
 // Destructor: delete the text and effect.
-Command::~Command() { delete text; delete effect; }
+Command::~Command() {
+    delete text;
+    delete effect;
+}
 void Command::saveEffect(const std::string& value) {
     *effect = value;
     Notify(this); // Tell the logger the command effect is ready.
@@ -30,17 +34,20 @@ std::ostream& operator<<(std::ostream& out, const Command& command) {
 CommandProcessor::CommandProcessor() : commands(new std::vector<Command*>) {}
 // Copy constructor: make separate copies of the commands.
 CommandProcessor::CommandProcessor(const CommandProcessor& other) : CommandProcessor() {
+    // Reserve space first so adding copied pointers needs no allocation.
+    commands->reserve(other.commands->size());
     for (Command* command : *other.commands) {
-        std::unique_ptr<Command> copy(new Command(*command));
-        commands->push_back(copy.get());
-        copy.release();
+        commands->push_back(new Command(*command));
     }
 }
 // Assignment operator: replace commands with copies.
 CommandProcessor& CommandProcessor::operator=(const CommandProcessor& other) {
     if (this != &other) {
         CommandProcessor copy(other);
-        std::swap(commands, copy.commands);
+        // Give the old list to the temporary object for cleanup.
+        std::vector<Command*>* oldCommands = commands;
+        commands = copy.commands;
+        copy.commands = oldCommands;
     }
     return *this;
 }
@@ -55,11 +62,15 @@ std::string CommandProcessor::readCommand() {
     return text;
 }
 Command* CommandProcessor::saveCommand(const std::string& text) {
-    std::unique_ptr<Command> command(new Command(text));
-    commands->push_back(command.get());
-    Command* saved = command.release();
+    Command* command = new Command(text);
+    try {
+        commands->push_back(command);
+    } catch (...) {
+        delete command; // The list did not take ownership.
+        throw;
+    }
     Notify(this); // Tell the logger a new command was saved.
-    return saved;
+    return command;
 }
 Command* CommandProcessor::getCommand() {
     std::string text = readCommand();

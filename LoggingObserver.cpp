@@ -35,7 +35,9 @@ void Subject::Detach(Observer* observer) {
 }
 // Send the event to every attached observer.
 void Subject::Notify(const ILoggable* object) const {
-    for (Observer* observer : *observers) observer->Update(object);
+    for (Observer* observer : *observers) {
+        observer->Update(object);
+    }
 }
 std::ostream& operator<<(std::ostream& out, const Subject& subject) {
     return out << "Subject with " << subject.observers->size() << " observers";
