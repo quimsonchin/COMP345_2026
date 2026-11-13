@@ -19,27 +19,37 @@ GameEngine::GameEngine()
 
 // Map and Player objects are borrowed, but the vector is deep-copied.
 GameEngine::GameEngine(const GameEngine &other)
-    : Subject(other), currentState(other.currentState), map(other.map),
-      deck(other.deck), activePlayers(new std::vector<Player *>(*other.activePlayers)),
-      turnNumber(other.turnNumber), ownedMap(nullptr), ownedDeck(nullptr),
-      ownedPlayers(new std::vector<Player *>()) {}
+    : Subject(other),
+      currentState(other.currentState),
+      map(nullptr),
+      deck(nullptr),
+      activePlayers(new std::vector<Player *>()),
+      turnNumber(other.turnNumber),
+      ownedMap(nullptr),
+      ownedDeck(nullptr),
+      ownedPlayers(new std::vector<Player *>())
+{
+}
 // The copied engine borrows the original's game objects: it never deletes them.
 
 GameEngine &GameEngine::operator=(const GameEngine &other)
 {
     if (this != &other)
     {
-        // Allocate before touching this, including when other borrows our objects.
-        std::vector<Player *> *replacement =
-            new std::vector<Player *>(*other.activePlayers);
+        // Release resources created by this engine.
         releaseStartupResources();
-        delete activePlayers;
-        activePlayers = replacement;
+
+        // Copy the state machine information only.
         currentState = other.currentState;
-        map = other.map;
-        deck = other.deck;
         turnNumber = other.turnNumber;
+
+        // Never borrow gameplay objects from the source engine.
+        map = nullptr;
+        deck = nullptr;
+
+        // releaseStartupResources() already cleared activePlayers.
     }
+
     return *this;
 }
 
@@ -170,7 +180,7 @@ bool GameEngine::transition(const std::string &event)
     {
         // Game assets must also be reset by startup integration before reuse.
         releaseStartupResources();
-        map = nullptr;  // Also stop borrowing externally supplied game assets.
+        map = nullptr; // Also stop borrowing externally supplied game assets.
         deck = nullptr;
         turnNumber = 0;
         // Clear shared per-turn order bookkeeping for a new game.
@@ -550,15 +560,15 @@ void GameEngine::startupPhase(std::istream &input, std::ostream &output)
 
 namespace
 {
-std::string trimStartupArgument(const std::string &value)
-{
-    const std::string whitespace = " \t\r\n";
-    const std::size_t start = value.find_first_not_of(whitespace);
-    if (start == std::string::npos)
-        return "";
-    const std::size_t end = value.find_last_not_of(whitespace);
-    return value.substr(start, end - start + 1);
-}
+    std::string trimStartupArgument(const std::string &value)
+    {
+        const std::string whitespace = " \t\r\n";
+        const std::size_t start = value.find_first_not_of(whitespace);
+        if (start == std::string::npos)
+            return "";
+        const std::size_t end = value.find_last_not_of(whitespace);
+        return value.substr(start, end - start + 1);
+    }
 } // namespace
 
 std::string GameEngine::handleStartupCommand(const std::string &line)
