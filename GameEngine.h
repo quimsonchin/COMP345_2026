@@ -1,13 +1,19 @@
 #ifndef GAME_ENGINE_H
 #define GAME_ENGINE_H
 
+#include <cstddef>
 #include <iostream>
 #include <string>
 #include <vector>
+#include "LoggingObserver.h"
 
-// Assignment 1, Part 5: the nine states in the supplied diagram.
-// GameState is an enumeration, not a class-type data member.
-enum class GameState {
+class Map;
+class Player;
+class Deck;
+
+// Exact A2 states ("End" represents quitting the program).
+enum class GameState
+{
     Start,
     MapLoaded,
     MapValidated,
@@ -19,42 +25,71 @@ enum class GameState {
     End
 };
 
-// Controls the game's flow by accepting only valid transitions.
-// This A1 class does not load maps or execute game actions: those
-// responsibilities are demonstrated separately by the other parts.
-class GameEngine {
+// A2 game controller.
+class GameEngine : public Subject, public ILoggable
+{
 public:
-    // Initialize an engine in the start state.
     GameEngine();
-
-    // Copy the current state from another engine.
-    GameEngine(const GameEngine& other);
-
-    // Copy the current state, supporting self-assignment.
-    GameEngine& operator=(const GameEngine& other);
-
-    // No heap-allocated resources are owned by this class.
+    GameEngine(const GameEngine &other);
+    GameEngine &operator=(const GameEngine &other);
     ~GameEngine();
 
-    // Apply a console command. Return false without changing state
-    // when the command is not an outgoing edge of the current state.
-    bool transition(const std::string& command);
-
-    // Get the current state and its human-readable name.
+    // Process a STATE EVENT, not the physical game action itself.
+    // Kaila's startupPhase() should call this only AFTER a successful action.
+    bool transition(const std::string &event);
     GameState getState() const;
     std::string getStateName() const;
-
-    // Return the valid outgoing commands for the current state.
     std::vector<std::string> getAvailableCommands() const;
-
-    // The end state has no outgoing transitions.
     bool isFinished() const;
+    std::string stringToLog() const override;
 
-    // Print the current engine state.
-    friend std::ostream& operator<<(std::ostream& out, const GameEngine& engine);
+    // Kaila supplies the map and the list of Player objects after startup.
+    // They must outlive the GameEngine and its game loop.
+    void setMap(Map *map);
+    void setDeck(Deck *deck);
+    void setPlayers(const std::vector<Player *> &players);
+    const std::vector<Player *> &getActivePlayers() const;
+
+    // A2, Part 3b
+    void reinforcementPhase();
+    void issueOrdersPhase();
+    void executeOrdersPhase();
+    void mainGameLoop();
+
+    // A2 Part 2: reads loadmap/validatemap/addplayer/gamestart.
+    void startupPhase();
+    void startupPhase(std::istream &input, std::ostream &output);
+    void removeEliminatedPlayers();
+    Player *checkWinner() const;
+    unsigned int getTurnNumber() const;
+
+    friend std::ostream &operator<<(std::ostream &out,
+                                    const GameEngine &engine);
 
 private:
     GameState currentState;
+    Map *map;                             // borrowed, do not delete
+    Deck *deck;                           // borrowed, do not delete
+    std::vector<Player *> *activePlayers; // owned vector; borrowed elements
+    unsigned int turnNumber;
+
+    // The engine borrows objects supplied with setMap/setDeck/setPlayers.
+    // It owns only the objects it creates during startupPhase().
+    Map *ownedMap;
+    Deck *ownedDeck;
+    std::vector<Player *> *ownedPlayers;
+
+    void releaseStartupResources();
+    std::string handleStartupCommand(const std::string &line);
+    std::string loadMapCommand(const std::string &fileName);
+    std::string validateMapCommand();
+    std::string addPlayerCommand(const std::string &playerName);
+    std::string gameStartCommand();
+    void listMapFiles(std::ostream &output) const;
+
+    int countOwnedTerritories(const Player *player) const;
+    int continentBonus(const Player *player) const;
+    bool executeNextOrder(Player *player, bool deployOnly);
 };
 
 #endif
