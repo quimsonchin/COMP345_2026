@@ -10,6 +10,7 @@
 class Map;
 class Player;
 class Deck;
+class CommandProcessor;
 
 // Exact A2 states ("End" represents quitting the program).
 enum class GameState
@@ -59,6 +60,8 @@ public:
     // A2 Part 2: reads loadmap/validatemap/addplayer/gamestart.
     void startupPhase();
     void startupPhase(std::istream &input, std::ostream &output);
+    // Shared console/file command source, with validation and command effects.
+    void startupPhase(CommandProcessor &commands, std::ostream &output);
     void removeEliminatedPlayers();
     Player *checkWinner() const;
     unsigned int getTurnNumber() const;

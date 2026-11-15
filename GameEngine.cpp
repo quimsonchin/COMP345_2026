@@ -1,4 +1,5 @@
 #include "GameEngine.h"
+#include "CommandProcessing.h"
 #include "Cards.h"
 #include "Map.h"
 #include "Orders.h"
@@ -372,11 +373,14 @@ void GameEngine::issueOrdersPhase()
     if (!deck)
         throw std::logic_error("issueOrdersPhase: deck not initialized");
 
-    // Reset order-issuing and per-turn Player bookkeeping before the first pass.
+    // Observe order-list additions before any player issues an order.
     for (Player *player : *activePlayers)
     {
-        if (player)
-            player->resetTurnState();
+        if (!player)
+            continue;
+        player->resetTurnState();
+        if (getObserver())
+            player->getOrdersList()->Attach(getObserver());
     }
 
     transition("issueorder");
@@ -426,7 +430,10 @@ bool GameEngine::executeNextOrder(Player *player, bool deployOnly)
         if (isDeploy != deployOnly)
             continue;
 
-        order->execute(); // A2: this must validate and enact the effect.
+        // Order::execute() notifies its observer with the execution effect.
+        if (getObserver())
+            order->Attach(getObserver());
+        order->execute(); // Validates and enacts the effect.
         std::cout << "Executed: " << *order << '\n';
         transition("execorder");
         orders->remove(i); // destroys order; do not dereference again
@@ -543,18 +550,40 @@ void GameEngine::startupPhase()
 
 void GameEngine::startupPhase(std::istream &input, std::ostream &output)
 {
+    CommandProcessor commands(input);
+    startupPhase(commands, output);
+}
+
+void GameEngine::startupPhase(CommandProcessor &commands, std::ostream &output)
+{
     if (currentState != GameState::Start &&
         currentState != GameState::MapLoaded &&
         currentState != GameState::MapValidated &&
         currentState != GameState::PlayersAdded)
         throw std::logic_error("startupPhase: game is not in startup state");
 
+    // Attach the engine's logger to commands and their recorded effects.
+    if (getObserver())
+        commands.Attach(getObserver());
+
     listMapFiles(output);
-    std::string line;
-    while (currentState != GameState::AssignReinforcement &&
-           std::getline(input, line))
+    while (currentState != GameState::AssignReinforcement)
     {
-        output << handleStartupCommand(line) << '\n';
+        Command *command = commands.getCommand();
+        if (!command)
+            break; // End of console/file input.
+
+        if (!commands.validate(command, currentState))
+        {
+            // validate() already saves the rejection reason as a command effect.
+            output << "Rejected: " << command->getEffect() << '\n';
+            continue;
+        }
+
+        // A command is run only after state and argument validation.
+        const std::string effect = handleStartupCommand(command->getCommand());
+        command->saveEffect(effect);
+        output << effect << '\n';
     }
 }
 

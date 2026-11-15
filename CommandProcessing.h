@@ -54,8 +54,12 @@ class CommandProcessor : public Subject, public ILoggable {
 public:
   // Format the log entry.
   std::string stringToLog() const override;
-  // Starts with no commands.
+  // Starts with no commands, reading from the console.
   CommandProcessor();
+
+  // Reads commands from an existing stream, e.g. an injected test input.
+  // The caller must keep that stream alive while commands are being read.
+  explicit CommandProcessor(std::istream &source);
 
   // Deep copies the saved commands.
   CommandProcessor(const CommandProcessor &other);
@@ -96,6 +100,7 @@ private:
   void copyCommands(const std::vector<Command *> &source);
 
   std::vector<Command *> commands; // owned
+  std::istream *input;              // borrowed; std::cin by default
 };
 
 // Reads a text file line by line.
