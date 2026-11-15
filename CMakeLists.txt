@@ -12,6 +12,7 @@ add_executable(PlayerDriver     PlayerDriver.cpp     Player.cpp Cards.cpp Orders
 
 set(GAME_ENGINE_SOURCES
     GameEngine.cpp
+    CommandProcessing.cpp
     Map.cpp
     Player.cpp
     Orders.cpp

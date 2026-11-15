@@ -12,14 +12,18 @@ int main() {
     // Show the starting cards.
     std::cout << "Before drawing:\n" << deck << '\n' << hand << "\n\n";
 
-    // Draw cards until the deck is empty.
-    while (deck.draw(hand)) {
+    // Draw five cards, leaving the remaining twenty in the deck.
+    for (int i = 0; i < 5; ++i) {
+        if (!deck.draw(hand)) {
+            std::cerr << "Drawing failed.\n";
+            return 1;
+        }
         std::cout << "Drew a card.\n";
     }
     std::cout << "\nAfter drawing:\n" << deck << '\n' << hand << "\n\n";
 
     // Check that all five cards were drawn.
-    if (deck.size() != 0 || hand.size() != 5) {
+    if (deck.size() != 20 || hand.size() != 5) {
         std::cerr << "Drawing failed.\n";
         return 1;
     }
@@ -45,7 +49,7 @@ int main() {
     }
 
     // Check the final card and order counts.
-    if (deck.size() != 5 || hand.size() != 0 || orders.size() != 5) {
+    if (deck.size() != 25 || hand.size() != 0 || orders.size() != 5) {
         std::cerr << "Final counts are incorrect.\n";
         return 1;
     }

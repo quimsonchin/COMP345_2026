@@ -93,9 +93,13 @@ std::ostream &operator<<(std::ostream &out, const Command &command) {
 
 // ------------------------------------------------------- CommandProcessor
 
-CommandProcessor::CommandProcessor() : commands() {}
+CommandProcessor::CommandProcessor() : commands(), input(&std::cin) {}
 
-CommandProcessor::CommandProcessor(const CommandProcessor &other) : Subject(other), commands() {
+CommandProcessor::CommandProcessor(std::istream &source)
+    : commands(), input(&source) {}
+
+CommandProcessor::CommandProcessor(const CommandProcessor &other)
+    : Subject(other), commands(), input(other.input) {
   copyCommands(other.commands);
 }
 
@@ -103,6 +107,7 @@ CommandProcessor &CommandProcessor::operator=(const CommandProcessor &other) {
   if (this != &other) {
     clearCommands();
     copyCommands(other.commands);
+    input = other.input;
   }
   return *this;
 }
@@ -184,7 +189,7 @@ std::ostream &operator<<(std::ostream &out, const CommandProcessor &processor) {
 // Skips blank lines so hitting Enter doesn't make an empty command.
 std::string CommandProcessor::readCommand() {
   std::string line;
-  while (std::getline(std::cin, line)) {
+  while (std::getline(*input, line)) {
     line = trim(line);
     if (!line.empty()) {
       return line;

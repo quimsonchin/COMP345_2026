@@ -26,7 +26,8 @@ namespace
             int count = 0;
             void Update(const ILoggable *value) override
             {
-                  if (value)
+                  // Count GameEngine state changes, not command log events.
+                  if (dynamic_cast<const GameEngine *>(value))
                         ++count;
             }
       };
@@ -55,11 +56,11 @@ namespace
 
             check(engine.getState() == GameState::AssignReinforcement,
                   "gamestart moves to assignreinforcement");
-            check(transcript.find("Invalid command 'gamestart'") != std::string::npos,
+            check(transcript.find("Can't gamestart in start") != std::string::npos,
                   "reject gamestart before loading a map");
             check(transcript.find("Could not load map") != std::string::npos,
                   "reject missing map without changing state");
-            check(transcript.find("does not accept arguments") != std::string::npos,
+            check(transcript.find("doesn't take an argument") != std::string::npos,
                   "reject extraneous command arguments");
             check(transcript.find("Duplicate player name") != std::string::npos,
                   "reject duplicate player names");
