@@ -1,52 +1,7 @@
 #include "Player.h"
+#include "PlayerStrategy.h"
 #include <algorithm> // For std::find, std::stable_sort
 #include <utility>   // For std::swap
-
-namespace
-{
-    // Number of armies a Reinforcement card adds to the reinforcement pool.
-    const int REINFORCEMENT_CARD_ARMIES = 5;
-
-    // True if 'from' has 'to' in its adjacency list.
-    bool isAdjacent(const Territory *from, const Territory *to)
-    {
-        const std::vector<Territory *> &neighbors = from->getAdjacent();
-        return std::find(neighbors.begin(), neighbors.end(), to) != neighbors.end();
-    }
-
-    // Number of neighbors of 't' that belong to somebody other than 'player'.
-    int enemyNeighborCount(const Territory *t, const Player *player)
-    {
-        int count = 0;
-        for (const Territory *neighbor : t->getAdjacent())
-        {
-            if (neighbor->getOwner() != player)
-            {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    // Among the player's territories, find the one adjacent to 'target' holding
-    // the most armies (at least minArmies). Returns nullptr if there is none.
-    Territory *bestSourceFor(const Player *player, const std::vector<Territory *> &owned,
-                             const Territory *target, int minArmies)
-    {
-        Territory *best = nullptr;
-        for (Territory *mine : owned)
-        {
-            if (mine->getOwner() == player && mine->getArmies() >= minArmies && isAdjacent(mine, target))
-            {
-                if (best == nullptr || mine->getArmies() > best->getArmies())
-                {
-                    best = mine;
-                }
-            }
-        }
-        return best;
-    }
-} // namespace
 
 /* Shared setup: allocates every member as an empty/default object. */
 void Player::init(const std::string &playerName)
@@ -60,6 +15,7 @@ void Player::init(const std::string &playerName)
     issueStage = new int(0);
     conqueredThisTurn = new bool(false);
     negotiatedWith = new std::vector<Player *>();
+    strategy = new DefaultPlayerStrategy(this); // Keeps the A2 behavior until setStrategy() is called
 }
 
 /* Deep copy of every member of 'other' into this (uninitialized) player. */
@@ -76,6 +32,8 @@ void Player::copyFrom(const Player &other)
     pendingDeployments = new int(*other.pendingDeployments);
     issueStage = new int(*other.issueStage);
     conqueredThisTurn = new bool(*other.conqueredThisTurn);
+    strategy = other.strategy->clone(); // Deep copy through the virtual copy constructor
+    strategy->setPlayer(this);          // The copy's strategy must work for the copy, not for 'other'
 }
 
 /* Frees everything the player owns. */
@@ -90,6 +48,7 @@ void Player::clear()
     delete issueStage;
     delete conqueredThisTurn;
     delete negotiatedWith; // Delete the vector, NOT the Player objects
+    delete strategy;       // The player owns its strategy
 }
 
 /* Default constructor */
@@ -152,6 +111,10 @@ Player &Player::operator=(const Player &other)
         std::swap(issueStage, copy.issueStage);
         std::swap(conqueredThisTurn, copy.conqueredThisTurn);
         std::swap(negotiatedWith, copy.negotiatedWith);
+        std::swap(strategy, copy.strategy);
+        // Each strategy still points at the player it was created for, so point them at their new owners.
+        strategy->setPlayer(this);
+        copy.strategy->setPlayer(&copy);
         // 'copy' now holds the old members and frees them when it goes out of scope.
     }
     return *this;
@@ -163,257 +126,28 @@ std::ostream &operator<<(std::ostream &os, const Player &player)
     os << "Player " << *player.name << " with " << player.territories->size() << " territories, "
        << "hand: " << *player.hand << ", "
        << "orders: " << *player.orders << ", "
-       << "reinforcements pool: " << *player.reinforcementsPool;
+       << "reinforcements pool: " << *player.reinforcementsPool << ", "
+       << "strategy: " << player.strategy->getName();
     return os;
 }
 
-/* Territories the player should protect, most threatened first: the ones with the most
-   enemy neighbors, then the ones with the fewest armies. The caller owns the returned vector. */
+/* Territories the player should protect. Delegates to the strategy; the caller owns the returned vector. */
 std::vector<Territory *> *Player::toDefend()
 {
-    std::vector<Territory *> *defend = new std::vector<Territory *>();
-    for (Territory *mine : *territories)
-    {
-        if (mine->getOwner() == this) // Ignore territories lost since they were added
-        {
-            defend->push_back(mine);
-        }
-    }
-    std::stable_sort(defend->begin(), defend->end(), [this](const Territory *a, const Territory *b)
-                     {
-                         int threatA = enemyNeighborCount(a, this);
-                         int threatB = enemyNeighborCount(b, this);
-                         if (threatA != threatB)
-                         {
-                             return threatA > threatB;
-                         }
-                         return a->getArmies() < b->getArmies(); });
-    return defend;
+    return strategy->toDefend();
 }
 
-/* Neighboring territories the player could attack, weakest first. Territories of a player
-   that negotiated with this one are left out. The caller owns the returned vector. */
+/* Territories the player could attack. Delegates to the strategy; the caller owns the returned vector. */
 std::vector<Territory *> *Player::toAttack()
 {
-    std::vector<Territory *> *attackable = new std::vector<Territory *>();
-    for (Territory *mine : *territories)
-    {
-        if (mine->getOwner() != this)
-        {
-            continue; // Ignore territories lost since they were added
-        }
-        for (Territory *neighbor : mine->getAdjacent())
-        {
-            if (neighbor->getOwner() != this && !hasNegotiatedWith(neighbor->getOwner()) &&
-                std::find(attackable->begin(), attackable->end(), neighbor) == attackable->end())
-            {
-                attackable->push_back(neighbor);
-            }
-        }
-    }
-    std::stable_sort(attackable->begin(), attackable->end(), [](const Territory *a, const Territory *b)
-                     { return a->getArmies() < b->getArmies(); });
-    return attackable;
+    return strategy->toAttack();
 }
 
-/* Deploy part of the armies that are still free, spread over the toDefend() list.
-   Armies are only committed here; the pool is debited when the order executes. */
-bool Player::issueDeploy()
-{
-    bool issued = false;
-    int available = getAvailableArmies();
-    std::vector<Territory *> *mine = toDefend();
-    if (available > 0 && !mine->empty())
-    {
-        int armies = (available + 1) / 2; // Half of what is left (rounded up), so deploys are spread out
-        Territory *target = (*mine)[orders->size() % mine->size()];
-        orders->addOrder(new Deploy(this, target, armies, reinforcementsPool));
-        *pendingDeployments += armies;
-        issued = true;
-    }
-    delete mine;
-    return issued;
-}
-
-/* Move half the armies of the strongest neighboring own territory to the
-   highest-priority territory of the toDefend() list. */
-bool Player::issueDefendAdvance()
-{
-    bool issued = false;
-    std::vector<Territory *> *mine = toDefend();
-    if (!mine->empty())
-    {
-        Territory *target = (*mine)[0];
-        Territory *source = bestSourceFor(this, *mine, target, 2);
-        if (source != nullptr)
-        {
-            orders->addOrder(new Advance(this, source, target, source->getArmies() / 2));
-            issued = true;
-        }
-    }
-    delete mine;
-    return issued;
-}
-
-/* Attack the weakest reachable territory of the toAttack() list with all but one
-   army of the strongest neighboring own territory. */
-bool Player::issueAttackAdvance()
-{
-    bool issued = false;
-    std::vector<Territory *> *mine = toDefend();
-    std::vector<Territory *> *enemy = toAttack();
-    for (std::size_t i = 0; i < enemy->size() && !issued; i++)
-    {
-        Territory *target = (*enemy)[i];
-        Territory *source = bestSourceFor(this, *mine, target, 2);
-        if (source != nullptr)
-        {
-            orders->addOrder(new Advance(this, source, target, source->getArmies() - 1));
-            issued = true;
-        }
-    }
-    delete mine;
-    delete enemy;
-    return issued;
-}
-
-/* Play the first card in the hand that can be turned into a sensible order.
-   The played card goes back to the deck. */
-bool Player::issueCardOrder(Deck *deck)
-{
-    if (deck == nullptr)
-    {
-        return false;
-    }
-    bool issued = false;
-    std::vector<Territory *> *mine = toDefend();
-    std::vector<Territory *> *enemy = toAttack();
-
-    for (int i = 0; i < hand->size() && !issued; i++)
-    {
-        Card *card = hand->getCard(i);
-        Order *order = nullptr;
-        bool isReinforcement = false;
-
-        switch (card->getType())
-        {
-        case CardType::Bomb:
-            for (Territory *target : *enemy)
-            {
-                // Bomb needs an enemy-owned target next to one of our territories
-                Territory *witness = bestSourceFor(this, *mine, target, 0);
-                if (target->getOwner() != nullptr && witness != nullptr)
-                {
-                    order = new Bomb(this, target, witness);
-                    break;
-                }
-            }
-            break;
-        case CardType::Reinforcement:
-            isReinforcement = true;
-            break;
-        case CardType::Blockade:
-            if (mine->size() >= 2) // Never blockade the only territory we have
-            {
-                order = new Blockade(this, mine->back()); // Least threatened territory
-            }
-            break;
-        case CardType::Airlift:
-        {
-            Territory *source = nullptr;
-            for (Territory *t : *mine)
-            {
-                if (t->getArmies() >= 2 && (source == nullptr || t->getArmies() > source->getArmies()))
-                {
-                    source = t;
-                }
-            }
-            if (source != nullptr && !mine->empty())
-            {
-                Territory *target = (*mine)[0] != source ? (*mine)[0] : (mine->size() > 1 ? (*mine)[1] : nullptr);
-                if (target != nullptr)
-                {
-                    order = new Airlift(this, source, target, source->getArmies() / 2);
-                }
-            }
-            break;
-        }
-        case CardType::Diplomacy:
-            for (Territory *target : *enemy)
-            {
-                if (target->getOwner() != nullptr)
-                {
-                    order = new Negotiate(this, target->getOwner());
-                    break;
-                }
-            }
-            break;
-        }
-
-        if (isReinforcement || order != nullptr)
-        {
-            // Card::play() puts its own placeholder order in the list it is given,
-            // so give it a scratch list and add the real order to the player's list.
-            OrdersList *scratch = new OrdersList();
-            if (card->play(*hand, *deck, *scratch))
-            {
-                if (isReinforcement)
-                {
-                    *reinforcementsPool += REINFORCEMENT_CARD_ARMIES; // Adds armies to the pool, no order is created
-                }
-                else
-                {
-                    orders->addOrder(order);
-                }
-                issued = true;
-            }
-            else
-            {
-                delete order; // The card was not played, so the order was never added
-            }
-            delete scratch; // Deletes the placeholder order
-        }
-    }
-    delete mine;
-    delete enemy;
-    return issued;
-}
-
-/* Issue one order. While armies are still left to deploy, only deploy orders are issued.
-   After that: one defending advance, one attacking advance, then card orders.
-   Orders are not validated here; that happens when they are executed. */
+/* Issue one order. Delegates to the strategy: returns true if an order was issued, or false when the
+   player has nothing more to issue this turn. */
 bool Player::issueOrder(Deck *deck)
 {
-    if (getAvailableArmies() > 0)
-    {
-        return issueDeploy();
-    }
-    while (*issueStage < 3)
-    {
-        bool issued = false;
-        switch (*issueStage)
-        {
-        case 0:
-            issued = issueDefendAdvance();
-            break;
-        case 1:
-            issued = issueAttackAdvance();
-            break;
-        case 2:
-            issued = issueCardOrder(deck);
-            if (issued)
-            {
-                return true; // Stay on the card stage until no card can be played
-            }
-            break;
-        }
-        (*issueStage)++;
-        if (issued)
-        {
-            return true;
-        }
-    }
-    return false; // Nothing more to issue this turn
+    return strategy->issueOrder(deck);
 }
 
 /* Forget everything that only lasts for one turn. */
@@ -450,9 +184,33 @@ bool Player::hasConqueredThisTurn() const
 {
     return *conqueredThisTurn;
 }
+int *Player::getPendingDeployments() const
+{
+    return pendingDeployments;
+}
 int Player::getAvailableArmies() const
 {
     return std::max(0, *reinforcementsPool - *pendingDeployments);
+}
+int *Player::getIssueStage() const
+{
+    return issueStage;
+}
+PlayerStrategy *Player::getStrategy() const
+{
+    return strategy;
+}
+
+/* Replaces the strategy at runtime. The old strategy is deleted and the player owns the new one. */
+void Player::setStrategy(PlayerStrategy *newStrategy)
+{
+    if (newStrategy == nullptr || newStrategy == strategy)
+    {
+        return; // A player always keeps a strategy
+    }
+    delete strategy;
+    strategy = newStrategy;
+    strategy->setPlayer(this);
 }
 
 /* Add a territory to the player's list of territories */
