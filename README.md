@@ -1,69 +1,75 @@
-# COMP 345 Team Project: Warzone (Assignment 1)
+# COMP 345 Team Project: Warzone
 
-C++ implementation of the building blocks of a simplified Warzone/Risk game.
+C++ implementation of a simplified Warzone/Risk game, built in three assignments.
 Course: COMP 345, Advanced Program Design with C++, Concordia University.
-Deadline: October 25, 2026.
 
-## Team and work division
+| Assignment | Topic | Deadline |
+|---|---|---|
+| A1 | Core classes: Map, Player, Orders, Cards, Game Engine | Oct 25, 2026 |
+| A2 | Command processing, startup phase, game loop, orders, logging | Nov 15, 2026 |
+| A3 | Player strategies and tournament mode | Dec 6, 2026 |
+
+## Team
+
+Kaila, Rifat, Mengqi, Phuc, Alexandre, Jiaju.
+
+## Assignment 1
 
 | # | Member | Responsibility | Files |
 |---|---|---|---|
-| 1 | Kaila | Map graph implementation | `Map.h`, `Map.cpp` |
-| 2 | Rifat | MapLoader and MapDriver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
-| 3 | Mengqi | Orders system | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
-| 4 | Phuc | Player class | `Player.h`, `Player.cpp`, `PlayerDriver.cpp` |
+| 1 | Kaila | Map graph (Territory, Continent, Map, validate) | `Map.h`, `Map.cpp` |
+| 2 | Rifat | MapLoader and Map driver | `Map.h`, `Map.cpp`, `MapDriver.cpp` |
+| 3 | Mengqi | Orders | `Orders.h`, `Orders.cpp`, `OrdersDriver.cpp` |
+| 4 | Phuc | Player | `Player.h`, `Player.cpp`, `PlayerDriver.cpp` |
 | 5 | Alexandre | Cards, deck and hand | `Cards.h`, `Cards.cpp`, `CardsDriver.cpp` |
 | 6 | Jiaju | Game engine | `GameEngine.h`, `GameEngine.cpp`, `GameEngineDriver.cpp` |
 
-(Replace the member names above with the real ones.)
+Kaila and Rifat both work in `Map.h` and `Map.cpp` (the whole Map part must be in one file pair). Kaila owns `Territory`, `Continent`, `Map` and `validate()`. Rifat owns `MapLoader` and the driver. Pull before every edit and commit small changes often. Map files used by the Map driver are in the `maps/` folder.
 
-Members 1 and 2 both work in `Map.h` and `Map.cpp` (the assignment requires the whole Map part in one file pair). Member 1 owns `Territory`, `Continent`, `Map` and `validate()`. Member 2 owns `MapLoader` and the driver. Pull before every edit and commit small changes often to avoid merge conflicts in these two files.
-
-## Project structure
+## Assignment 2
 
 | Part | Files | Driver |
 |---|---|---|
-| 1. Map | `Map.h`, `Map.cpp` | `MapDriver.cpp` |
-| 2. Player | `Player.h`, `Player.cpp` | `PlayerDriver.cpp` |
-| 3. Orders list | `Orders.h`, `Orders.cpp` | `OrdersDriver.cpp` |
-| 4. Cards deck/hand | `Cards.h`, `Cards.cpp` | `CardsDriver.cpp` |
-| 5. Game Engine | `GameEngine.h`, `GameEngine.cpp` | `GameEngineDriver.cpp` |
-| A2 1. Command processor | `CommandProcessing.h`, `CommandProcessing.cpp` | `CommandProcessingDriver.cpp` |
+| 1. Command processing | `CommandProcessing.h`, `CommandProcessing.cpp` | `CommandProcessingDriver.cpp` |
+| 2. Game startup phase | `GameEngine.h`, `GameEngine.cpp` | `GameEngineStartupDriver.cpp` |
+| 3. Main game loop | `GameEngine.h`, `GameEngine.cpp`, `Player.cpp` | `GameEngineDriver.cpp` |
+| 4. Order execution | `Orders.h`, `Orders.cpp` | `OrdersDriver.cpp` |
+| 5. Game log observer | `LoggingObserver.h`, `LoggingObserver.cpp` | `LoggingObserverDriver.cpp` |
 
-Map files used by the Map driver are in the `maps/` folder.
+## Assignment 3
 
-## How to build and run
+Part 1 adds player strategies (Strategy pattern) and Part 2 adds tournament mode. All strategy classes live in the new `PlayerStrategies.h` and `PlayerStrategies.cpp`.
 
-Requires CMake 3.20+ and a compiler with C++23 support (e.g. `g++`).
-Each driver has its own `main()`, so `CMakeLists.txt` builds one executable per driver, each with only the files it needs.
+| Member | Tasks |
+|---|---|
+| Phuc | `PlayerStrategy` base class, `Player` delegation, `HumanPlayerStrategy` |
+| Mengqi | `AggressivePlayerStrategy`, `NeutralPlayerStrategy` (an attacked Neutral becomes Aggressive) |
+| Alexandre | `BenevolentPlayerStrategy`, tournament results in the log, tournament driver |
+| Rifat | `tournament` command parsing and validation, strategy driver |
+| Jiaju | Tournament execution in `GameEngine`, CMake targets, final zip |
+| Kaila | `CheaterPlayerStrategy`, automated per-game setup for the tournament |
 
-Build all drivers from the project root:
+Tournament command: `tournament -M <maps> -P <strategies> -G <games> -D <max turns>` (1 to 5 maps, 2 to 4 computer strategies, 1 to 5 games per map, 10 to 50 turns).
 
-```
-cmake -S . -B build
-cmake --build build
-```
+## Build and run
 
-Run the drivers from the project root (the Map driver reads files from `maps/`, relative to the current folder):
+Requires CMake 3.20 or newer and g++ with C++23 support (tested with MinGW-w64 on Windows). Run these from the project root.
 
-```
-./build/MapDriver
-./build/OrdersDriver
-./build/CardsDriver
-./build/PlayerDriver
-./build/GameEngineDriver
-```
+    cmake -S . -B build -G "MinGW Makefiles"
+    cmake --build build
 
-The command processor driver takes the command source on the command line, either the console or a saved command file:
+On Mac or Linux, use `cmake -S . -B build` without the `-G` option. The executables are created in `build/`.
 
-```
-./build/CommandProcessingDriver -console
-./build/CommandProcessingDriver -file commands/commands.txt
-```
+| Driver | Run |
+|---|---|
+| Map | `.\build\MapDriver.exe` |
+| Orders | `.\build\OrdersDriver.exe` |
+| Cards | `.\build\CardsDriver.exe` |
+| Player | `.\build\PlayerDriver.exe` |
+| Game engine | `.\build\GameEngineDriver.exe` |
+| Startup phase | `.\build\GameEngineStartupDriver.exe` |
+| Logging observer | `.\build\LoggingObserverDriver.exe` |
+| Command processing | `.\build\CommandProcessingDriver.exe` |
+| Full game | `.\build\WarzoneGame.exe` |
 
-To build a single driver, use `cmake --build build --target MapDriver` (or any other driver name).
-
-On Windows, run the executables as `.\build\MapDriver.exe` (some generators put them in `build\Debug\` instead).
-
-If you add a new `.cpp` file or a new dependency between parts, add it to the matching `add_executable` line in `CMakeLists.txt`.
-
+Do not commit `build/` or any `.exe` files. Assignment 3 drivers will be added to this table as their targets are created.
