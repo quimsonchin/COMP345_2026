@@ -6,8 +6,11 @@
 #include "Cards.h"  // For Hand
 #include "Orders.h" // For OrdersList
 
+class PlayerStrategy;
+
 // A player of the game. Owns its hand, orders list, reinforcement pool and
-// per-turn bookkeeping. Territory objects are owned by the Map, not the Player.
+// per-turn bookkeeping, and its PlayerStrategy, which makes all the decisions of the issuing phase (Strategy pattern).
+// Territory objects are owned by the Map, not the Player.
 class Player
 {
 private:
@@ -20,22 +23,17 @@ private:
     int *issueStage;                       // Which kind of order issueOrder() tries next this turn
     bool *conqueredThisTurn;               // True if the player conquered a territory this turn
     std::vector<Player *> *negotiatedWith; // Players this player cannot attack this turn (not owned)
+    PlayerStrategy *strategy;              // How this player decides (owned, never null)
 
     // Helpers used by the copy constructor, assignment operator and destructor
     void init(const std::string &playerName);
     void copyFrom(const Player &other);
     void clear();
 
-    // Helpers for issueOrder(): each returns true if it issued an order
-    bool issueDeploy();
-    bool issueDefendAdvance();
-    bool issueAttackAdvance();
-    bool issueCardOrder(Deck *deck);
-
 public:
     // Constructor and Destructor
     Player();
-    explicit Player(const std::string &name);
+    explicit Player(const std::string &name); // explicit to avoid accidental implicit conversions from string to Player
     Player(std::vector<Territory *> *territories, Hand *hand, OrdersList *orders);
     Player(const Player &other); // Copy constructor
     ~Player();                   // Destructor
@@ -65,6 +63,12 @@ public:
     OrdersList *getOrdersList() const;
     int *getReinforcementsPool() const;
     bool hasConqueredThisTurn() const;
+    int *getPendingDeployments() const; // Armies already committed to deploy orders this turn
+    int *getIssueStage() const;         // Progress counter that strategies may use during the issuing phase
+    PlayerStrategy *getStrategy() const;
+
+    // Replaces the player's strategy at runtime. The player takes ownership of 'newStrategy'.
+    void setStrategy(PlayerStrategy *newStrategy);
 
     // Armies still free to be committed to a new deploy order
     int getAvailableArmies() const;
