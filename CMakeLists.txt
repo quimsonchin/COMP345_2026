@@ -6,15 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall)
 
 add_executable(MapDriver        MapDriver.cpp        Map.cpp)
-add_executable(OrdersDriver     OrdersDriver.cpp     Orders.cpp Map.cpp LoggingObserver.cpp Player.cpp Cards.cpp)
-add_executable(CardsDriver      CardsDriver.cpp      Player.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
-add_executable(PlayerDriver     PlayerDriver.cpp     Player.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
+add_executable(OrdersDriver     OrdersDriver.cpp     Orders.cpp Map.cpp LoggingObserver.cpp Player.cpp PlayerStrategies.cpp Cards.cpp)
+add_executable(CardsDriver      CardsDriver.cpp      Player.cpp PlayerStrategies.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
+add_executable(PlayerDriver     PlayerDriver.cpp     Player.cpp PlayerStrategies.cpp Cards.cpp Orders.cpp Map.cpp LoggingObserver.cpp)
 
 set(GAME_ENGINE_SOURCES
     GameEngine.cpp
     CommandProcessing.cpp
     Map.cpp
-    Player.cpp
+    Player.cpp PlayerStrategies.cpp
     Orders.cpp
     Cards.cpp
     LoggingObserver.cpp
@@ -29,6 +29,6 @@ add_executable(GameEngineStartupDriver
 add_executable(WarzoneGame
     WarzoneGame.cpp ${GAME_ENGINE_SOURCES})
     
-add_executable(LoggingObserverDriver LoggingObserverDriver.cpp LoggingObserver.cpp CommandProcessing.cpp GameEngine.cpp Orders.cpp Map.cpp Player.cpp Cards.cpp)
+add_executable(LoggingObserverDriver LoggingObserverDriver.cpp LoggingObserver.cpp CommandProcessing.cpp GameEngine.cpp Orders.cpp Map.cpp Player.cpp PlayerStrategies.cpp Cards.cpp)
 
 add_executable(CommandProcessingDriver CommandProcessingDriver.cpp CommandProcessing.cpp LoggingObserver.cpp)
