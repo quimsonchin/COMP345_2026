@@ -1,3 +1,4 @@
+#include "PlayerStrategies.h"
 #include "GameEngine.h"
 #include "CommandProcessing.h"
 #include "Cards.h"
@@ -753,4 +754,64 @@ void GameEngine::listMapFiles(std::ostream &output) const
         if (entry.is_regular_file() && entry.path().extension() == ".map")
             output << "  " << entry.path().filename().string() << '\n';
     }
+}
+
+namespace
+{
+    // turns a strategy name from the tournament command into the real strategy, nullptr if we don't know it
+    PlayerStrategy *makeStrategy(const std::string &name, Player *player)
+    {
+        if (name == "Cheater")
+            return new CheaterPlayerStrategy(player);
+        return nullptr;
+    }
+} // namespace
+
+// clears everything from the last game so the next one starts fresh
+void GameEngine::resetForNewGame()
+{
+    releaseStartupResources(); // deletes the map, deck and players we made last game
+    activePlayers->clear();
+    map = nullptr;
+    deck = nullptr;
+    turnNumber = 0;
+    currentState = GameState::Start;
+}
+
+// sets up one tournament game, same steps as the startup phase but no typed commands
+bool GameEngine::setupTournamentGame(const std::string &mapFile, const std::vector<std::string> &strategies, std::ostream &output)
+{
+    resetForNewGame();
+
+    // load and validate the map, stop if either one fails
+    output << loadMapCommand(mapFile) << '\n';
+    if (currentState != GameState::MapLoaded)
+        return false;
+    output << validateMapCommand() << '\n';
+    if (currentState != GameState::MapValidated)
+        return false;
+
+    // one computer player per strategy
+    for (std::size_t i = 0; i < strategies.size(); ++i)
+    {
+        // named after its strategy, the number keeps names unique (ex: "Cheater 1")
+        const std::string name = strategies[i] + " " + std::to_string(i + 1);
+        const std::size_t before = activePlayers->size();
+        output << addPlayerCommand(name) << '\n';
+        if (activePlayers->size() != before + 1)
+            return false;
+
+        Player *player = activePlayers->back();
+        PlayerStrategy *strategy = makeStrategy(strategies[i], player);
+        if (!strategy)
+        {
+            output << "Unknown strategy: " << strategies[i] << '\n';
+            return false;
+        }
+        player->setStrategy(strategy); // swaps out the default strategy
+    }
+
+    // splits territories, gives 50 armies and 2 cards each, random turn order
+    output << gameStartCommand() << '\n';
+    return currentState == GameState::AssignReinforcement;
 }

@@ -66,8 +66,10 @@ public:
     Player *checkWinner() const;
     unsigned int getTurnNumber() const;
 
-    friend std::ostream &operator<<(std::ostream &out,
-                                    const GameEngine &engine);
+    // A3 tournament: sets up one game by itself (loadmap, validatemap, addplayer, gamestart), true if it worked
+    bool setupTournamentGame(const std::string &mapFile, const std::vector<std::string> &strategies, std::ostream &output);
+
+    friend std::ostream &operator<<(std::ostream &out, const GameEngine &engine);
 
 private:
     GameState currentState;
@@ -83,6 +85,7 @@ private:
     std::vector<Player *> *ownedPlayers;
 
     void releaseStartupResources();
+    void resetForNewGame(); // wipes the last game so a new one can start clean
     std::string handleStartupCommand(const std::string &line);
     std::string loadMapCommand(const std::string &fileName);
     std::string validateMapCommand();
