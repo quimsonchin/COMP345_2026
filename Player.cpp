@@ -1,5 +1,5 @@
 #include "Player.h"
-#include "PlayerStrategy.h"
+#include "PlayerStrategies.h"
 #include <algorithm> // For std::find, std::stable_sort
 #include <utility>   // For std::swap
 
