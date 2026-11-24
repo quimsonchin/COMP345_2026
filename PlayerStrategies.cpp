@@ -694,3 +694,88 @@ bool HumanPlayerStrategy::issueOrder(Deck *deck)
         }
     }
 }
+
+// makes a cheater for the given player
+CheaterPlayerStrategy::CheaterPlayerStrategy(Player *owner) : PlayerStrategy(owner) {}
+
+// copy constructor, the base class does the copying
+CheaterPlayerStrategy::CheaterPlayerStrategy(const CheaterPlayerStrategy &other) : PlayerStrategy(other) {}
+
+// destructor, nothing to delete because the player isn't ours
+CheaterPlayerStrategy::~CheaterPlayerStrategy() {}
+
+// assignment operator
+CheaterPlayerStrategy &CheaterPlayerStrategy::operator=(const CheaterPlayerStrategy &other)
+{
+    if (this != &other)
+        PlayerStrategy::operator=(other);
+    return *this;
+}
+
+// goes through my territories and collects the neighbors I don't own
+std::vector<Territory *> CheaterPlayerStrategy::enemyNeighbors() const
+{
+    std::vector<Territory *> result;
+    if (p == nullptr)
+        return result;
+    for (Territory *mine : *p->getTerritories())
+    {
+        for (Territory *next : mine->getAdjacent())
+        {
+            bool notMine = next->getOwner() != p;
+            bool notAddedYet = std::find(result.begin(), result.end(), next) == result.end(); // a territory can touch several of mine
+            if (notMine && notAddedYet)
+                result.push_back(next);
+        }
+    }
+    return result;
+}
+
+// takes all the enemy neighbors, only once per turn
+// returns true if it took at least one
+bool CheaterPlayerStrategy::issueOrder(Deck *)
+{
+    if (p == nullptr || *p->getIssueStage() > 0) // already did it this turn
+        return false;
+    *p->getIssueStage() = 1; // so we don't do it twice
+
+    std::vector<Territory *> targets = enemyNeighbors(); // get the list first, before ownership changes
+    for (Territory *t : targets)
+    {
+        Player *oldOwner = t->getOwner();
+        if (oldOwner != nullptr)
+            oldOwner->removeTerritory(t); // old owner loses it
+        t->setOwner(p);
+        p->addTerritory(t);
+        std::cout << p->getName() << " (Cheater) conquered " << t->getName() << "\n";
+    }
+    if (!targets.empty())
+        p->setConqueredThisTurn(true); // so it still gets a card at the end of the turn
+    return !targets.empty();
+}
+
+// the enemy territories it takes over
+std::vector<Territory *> *CheaterPlayerStrategy::toAttack()
+{
+    return new std::vector<Territory *>(enemyNeighbors());
+}
+
+// just my own territories, a cheater doesn't really defend
+std::vector<Territory *> *CheaterPlayerStrategy::toDefend()
+{
+    if (p == nullptr)
+        return new std::vector<Territory *>();
+    return new std::vector<Territory *>(*p->getTerritories());
+}
+
+// makes a copy of this strategy
+PlayerStrategy *CheaterPlayerStrategy::clone() const
+{
+    return new CheaterPlayerStrategy(*this);
+}
+
+// the name shown in logs and in the tournament results
+std::string CheaterPlayerStrategy::getName() const
+{
+    return "Cheater";
+}

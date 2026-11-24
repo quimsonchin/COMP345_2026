@@ -83,3 +83,32 @@ public:
     PlayerStrategy *clone() const override;
     std::string getName() const override;
 };
+
+// Cheater strategy: once per turn it takes every territory next to one of its own
+class CheaterPlayerStrategy : public PlayerStrategy
+{
+public:
+    // makes a cheater for the given player
+    explicit CheaterPlayerStrategy(Player *owner = nullptr);
+    // copy constructor
+    CheaterPlayerStrategy(const CheaterPlayerStrategy &other);
+    // destructor
+    ~CheaterPlayerStrategy() override;
+    // assignment operator
+    CheaterPlayerStrategy &operator=(const CheaterPlayerStrategy &other);
+
+    // takes all the enemy neighbors (once per turn), true if it took any
+    bool issueOrder(Deck *deck) override;
+    // the enemy territories it takes over
+    std::vector<Territory *> *toAttack() override;
+    // the player's own territories
+    std::vector<Territory *> *toDefend() override;
+    // makes a copy of this strategy
+    PlayerStrategy *clone() const override;
+    // returns "Cheater"
+    std::string getName() const override;
+
+private:
+    // enemy territories next to mine, no doubles
+    std::vector<Territory *> enemyNeighbors() const;
+};
