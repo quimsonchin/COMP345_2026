@@ -112,3 +112,39 @@ private:
     // enemy territories next to mine, no doubles
     std::vector<Territory *> enemyNeighbors() const;
 };
+
+/* Aggressive strategy: concentrates reinforcements on the strongest
+   territory and prioritizes attacks against neighboring enemies. */
+class AggressivePlayerStrategy : public PlayerStrategy
+{
+public:
+    explicit AggressivePlayerStrategy(Player *owner = nullptr);
+    AggressivePlayerStrategy(const AggressivePlayerStrategy &other);
+    ~AggressivePlayerStrategy() override;
+    AggressivePlayerStrategy &operator=(const AggressivePlayerStrategy &other);
+
+    bool issueOrder(Deck *deck) override;
+    std::vector<Territory *> *toAttack() override;
+    std::vector<Territory *> *toDefend() override;
+
+    PlayerStrategy *clone() const override;
+    std::string getName() const override;
+};
+
+/* Neutral strategy: never issues orders.
+   An attacked Neutral player switches to Aggressive. */
+class NeutralPlayerStrategy : public PlayerStrategy
+{
+public:
+    explicit NeutralPlayerStrategy(Player *owner = nullptr);
+    NeutralPlayerStrategy(const NeutralPlayerStrategy &other);
+    ~NeutralPlayerStrategy() override;
+    NeutralPlayerStrategy &operator=(const NeutralPlayerStrategy &other);
+
+    bool issueOrder(Deck *deck) override;
+    std::vector<Territory *> *toAttack() override;
+    std::vector<Territory *> *toDefend() override;
+
+    PlayerStrategy *clone() const override;
+    std::string getName() const override;
+};

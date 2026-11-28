@@ -2,6 +2,7 @@
 #include "Map.h"
 #include "Player.h"
 #include "Cards.h"
+#include "PlayerStrategies.h"
 #include<random>
 #include <algorithm>
 #include <stdexcept>
@@ -203,6 +204,17 @@ void Advance::execute() {
     // CASE 2: Attack enemy territory
     Player* defender = target->getOwner();
 
+    // A3: An attacked Neutral player becomes Aggressive.
+    // This happens on a valid enemy attack, even if it fails.
+    if (defender != nullptr &&
+        dynamic_cast<NeutralPlayerStrategy *>(
+            defender->getStrategy()) != nullptr)
+    {
+        defender->setStrategy(
+            new AggressivePlayerStrategy(defender)
+        );
+    }
+
     int attackingArmies = armies;
     int defendingArmies = target->getArmies();
 
@@ -365,8 +377,19 @@ void Blockade::execute() {
         return;
     }
 
-    // One shared Neutral player for this game demonstration.
-    static Player neutralPlayer;
+    // a3 updates.
+   
+    static Player neutralPlayer("Neutral");
+    static bool neutralInitialized = false;
+
+    if (!neutralInitialized)
+    {
+        neutralPlayer.setStrategy(
+            new NeutralPlayerStrategy(&neutralPlayer)
+        );
+        neutralInitialized = true;
+    }
+
 
     Player* previousOwner = target->getOwner();
 
